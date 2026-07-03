@@ -28,9 +28,12 @@ js/formatters.js
 
 ```txt
 formatters.js: concluído
-accounts.js: pendente
-CSS Fase 3: pendente
-Dashboard com contas: pendente
+accounts.js: concluído
+CSS Fase 3: concluído
+Dashboard com contas: concluído
+Cadastro de conta no Firestore: concluído
+Listagem de contas do mês: concluído
+Indicadores básicos de despesas: concluído
 ```
 
 ## Observação técnica
@@ -84,9 +87,21 @@ Exemplo:
 2026-07
 ```
 
+## Teste realizado
+
+```txt
+URL: https://junior-liberato.github.io/controle-financeiro-liberato/
+Usuário: Junior Liberato
+Conta teste: Testando
+Valor: R$ 125,00
+Vencimento: 10/07/2026
+Resultado: conta cadastrada, listada no dashboard e indicadores atualizados
+```
+
 ## Próximos passos
 
-1. Criar `js/accounts.js` manualmente.
-2. Atualizar `css/style.css` manualmente se necessário.
-3. Atualizar dashboard para exibir contas.
-4. Testar o cadastro da primeira conta.
+1. Criar ação para marcar conta como paga.
+2. Criar ação para editar conta.
+3. Criar ação para excluir/arquivar conta.
+4. Criar filtros por mês e status.
+5. Iniciar módulo de receitas.
