@@ -1,5 +1,5 @@
 export const firebaseConfig = {
-  apiKey: 'AIzaSyAIIBiewiurKDN0_hfCRDu1Wjyxt3595hc',
+  apiKey: 'AIzaSyAIIBiewiurKDN0_htCRDuIWjyxt3595hc',
   authDomain: 'sistema-financeiro-famil-446f8.firebaseapp.com',
   projectId: 'sistema-financeiro-famil-446f8',
   storageBucket: 'sistema-financeiro-famil-446f8.firebasestorage.app',
