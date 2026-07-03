@@ -47,7 +47,8 @@ function renderLogin(message = '') {
     try {
       await entrar(email, senha);
     } catch (error) {
-      status.textContent = 'Não foi possível entrar. Confira e-mail e senha.';
+      console.error('Erro ao entrar:', error);
+      status.textContent = `Erro ao entrar: ${error.code || 'erro-desconhecido'}`;
     }
   });
 
@@ -63,7 +64,8 @@ function renderLogin(message = '') {
       await recuperarSenha(email);
       status.textContent = 'E-mail de recuperação enviado.';
     } catch (error) {
-      status.textContent = 'Não foi possível enviar a recuperação agora.';
+      console.error('Erro ao recuperar senha:', error);
+      status.textContent = `Erro ao recuperar: ${error.code || 'erro-desconhecido'}`;
     }
   });
 }
