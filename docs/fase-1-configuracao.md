@@ -30,11 +30,13 @@ main
 
 Será necessário criar um projeto no Firebase Console.
 
-Nome sugerido:
+Nome oficial do projeto Firebase:
 
 ```txt
-Sistema Financeiro Familiar Liberato
+Sistema Financeiro Familiar
 ```
+
+Observação: o Firebase limita o nome do projeto a 30 caracteres, por isso o nome foi ajustado sem a palavra "Liberato".
 
 ## Serviços a ativar
 
