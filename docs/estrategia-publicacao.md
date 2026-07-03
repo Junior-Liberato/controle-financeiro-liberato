@@ -2,9 +2,9 @@
 
 ## Situação identificada
 
-O repositório está privado.
+O repositório inicialmente estava privado.
 
-O GitHub Pages informou que, no plano atual, para habilitar Pages será necessário:
+O GitHub Pages informou que, no plano atual, para habilitar Pages seria necessário:
 
 ```txt
 Fazer upgrade do plano
@@ -12,74 +12,76 @@ ou
 Tornar o repositório público
 ```
 
-## Decisão do projeto
+## Decisão atual
 
-Durante o desenvolvimento, o repositório permanecerá privado.
+O repositório foi tornado público para permitir o uso gratuito do GitHub Pages.
 
-A publicação pública será feita somente quando a primeira versão funcional estiver pronta e validada.
-
-## Opções de publicação
-
-### Opção A - Manter privado durante o desenvolvimento
-
-Status:
+Repositório:
 
 ```txt
-Escolhida
+Junior-Liberato/controle-financeiro-liberato
 ```
 
-Vantagens:
-
-- Código protegido durante a construção.
-- Menos exposição enquanto o app ainda está em desenvolvimento.
-- Permite revisar segurança antes da publicação.
-
-Limitação:
-
-- GitHub Pages não fica disponível no plano atual enquanto o repositório for privado.
-
-### Opção B - Tornar o repositório público depois da validação
-
-Vantagens:
-
-- GitHub Pages gratuito.
-- Link público para acessar pelo celular.
-- Firebase continua protegendo os dados por login.
-
-Cuidados:
-
-- O código-fonte ficará visível.
-- As regras do Firestore precisam estar corretas.
-- Não pode haver segredos reais no código.
-
-### Opção C - Criar um segundo repositório público apenas para publicação
-
-Vantagens:
-
-- Mantém o repositório principal privado.
-- Publica somente a versão pronta.
-- Melhor separação entre desenvolvimento e produção.
-
-Possível nome:
+Status atual:
 
 ```txt
-controle-financeiro-liberato-app
+Público
 ```
 
-## Recomendação
+URL do aplicativo:
 
-Seguir com o repositório privado até o login e dashboard serem testados localmente.
+```txt
+https://junior-liberato.github.io/controle-financeiro-liberato/
+```
 
-Depois, quando o app estiver funcional, criar um repositório público de publicação ou tornar este repositório público.
+## GitHub Pages
 
-## Observação de segurança
+Fonte recomendada:
 
-As chaves Firebase Web não são senha do banco.
+```txt
+Deploy from a branch
+```
 
-A proteção real dos dados está em:
+Branch:
+
+```txt
+main
+```
+
+Pasta:
+
+```txt
+/root
+```
+
+## Cuidados de segurança
+
+O código-fonte ficará visível publicamente.
+
+Isso é aceitável para este projeto porque:
+
+- os dados financeiros não ficam no GitHub;
+- os dados ficam no Firebase;
+- o acesso exige login;
+- as regras do Firestore filtram por usuário e familyId;
+- a chave Firebase Web não é senha do banco.
+
+## Proteção real dos dados
+
+A proteção real está em:
 
 - Firebase Authentication
 - Firestore Security Rules
 - coleção users
 - familyId
 - status active
+
+## Próximos testes
+
+1. Abrir a URL pública.
+2. Validar se a tela de login aparece.
+3. Entrar com usuário cadastrado.
+4. Confirmar abertura do dashboard.
+5. Testar o botão Sair.
+6. Testar no celular do Junior.
+7. Testar no celular da Júlia.
