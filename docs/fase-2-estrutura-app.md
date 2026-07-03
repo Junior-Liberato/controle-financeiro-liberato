@@ -20,6 +20,10 @@ firebase-init.js: concluído
 auth.js: concluído
 dashboard.js: concluído
 app.js completo: concluído
+publicação GitHub Pages: concluído
+login com Firebase: concluído
+recuperação de senha: concluído
+abertura do dashboard: concluído
 ```
 
 ## Observação técnica
@@ -65,12 +69,21 @@ Se usuário não autorizado: sair e bloquear acesso
 - menu inferior mobile-first
 - botão sair
 
+## Teste realizado
+
+```txt
+URL: https://junior-liberato.github.io/controle-financeiro-liberato/
+Usuário testado: Junior Liberato
+Resultado: login realizado com sucesso e dashboard carregado
+```
+
 ## Próximo passo
 
-Testar localmente ou publicar uma prévia para validar:
+Iniciar a Fase 3 com melhorias visuais e estrutura operacional:
 
-1. carregamento da tela de login;
-2. login com usuário autorizado;
-3. leitura do documento do usuário no Firestore;
-4. abertura do dashboard;
-5. botão sair.
+1. ajustar espaçamento do dashboard no desktop e celular;
+2. criar estrutura de navegação entre abas;
+3. criar modal/formulário de nova conta;
+4. salvar primeira conta no Firestore;
+5. listar contas do mês no dashboard;
+6. calcular os primeiros indicadores reais.
