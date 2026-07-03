@@ -2,8 +2,10 @@ import { db } from './firebase-init.js';
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   query,
+  updateDoc,
   where,
   serverTimestamp,
   Timestamp
@@ -48,4 +50,14 @@ export async function listAccountsByMonth(appUser, referenceMonth) {
     id: document.id,
     ...document.data()
   }));
+}
+export async function markAccountAsPaid(appUser, accountId) {
+  const accountRef = doc(db, 'accounts', accountId);
+
+  return updateDoc(accountRef, {
+    status: 'paid',
+    paidAt: serverTimestamp(),
+    updatedBy: appUser.uid,
+    updatedAt: serverTimestamp()
+  });
 }
