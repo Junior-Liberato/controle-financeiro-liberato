@@ -28,8 +28,6 @@ main
 
 ## Firebase
 
-Será necessário criar um projeto no Firebase Console.
-
 Nome oficial do projeto Firebase:
 
 ```txt
@@ -38,7 +36,18 @@ Sistema Financeiro Familiar
 
 Observação: o Firebase limita o nome do projeto a 30 caracteres, por isso o nome foi ajustado sem a palavra "Liberato".
 
-## Serviços a ativar
+## Status da configuração
+
+```txt
+Projeto Firebase criado: concluído
+App Web criado: concluído
+Arquivo js/firebase.js configurado: concluído
+Authentication ativado: concluído
+Usuários iniciais criados: concluído
+Firestore Database: pendente
+```
+
+## Serviços ativados
 
 ### Authentication
 
@@ -53,6 +62,12 @@ Usuários iniciais:
 ```txt
 Junior Liberato
 Júlia Liberato
+```
+
+Status:
+
+```txt
+Concluído
 ```
 
 ### Firestore Database
@@ -71,28 +86,21 @@ South America, se disponível
 
 Se não estiver disponível, usar a opção recomendada pelo Firebase.
 
+Status:
+
+```txt
+Pendente
+```
+
 ## Configuração Web App
 
-Após criar o projeto Firebase, criar um aplicativo Web.
-
-Nome sugerido:
+Aplicativo Web criado:
 
 ```txt
 Controle Financeiro Liberato Web
 ```
 
-O Firebase irá gerar um bloco de configuração contendo:
-
-```txt
-apiKey
-authDomain
-projectId
-storageBucket
-messagingSenderId
-appId
-```
-
-Esses dados deverão ser inseridos no arquivo:
+Configuração inserida no arquivo:
 
 ```txt
 js/firebase.js
@@ -111,13 +119,13 @@ A segurança real será feita por:
 
 ## Próxima etapa técnica
 
-Depois de configurar o Firebase, o projeto seguirá para:
+Depois de criar o Firestore Database, o projeto seguirá para:
 
-1. inicialização do Firebase no JavaScript;
-2. tela de login;
-3. validação de usuário autorizado;
-4. criação da família inicial;
-5. criação dos usuários iniciais;
+1. criação das regras de segurança;
+2. inicialização do Firebase no JavaScript;
+3. tela de login;
+4. validação de usuário autorizado;
+5. criação da família inicial;
 6. conexão com Firestore.
 
 ## Arquivos já criados
