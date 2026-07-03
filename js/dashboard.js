@@ -1,4 +1,4 @@
-import { createAccount, listAccountsByMonth } from './accounts.js';
+import { createAccount, listAccountsByMonth, markAccountAsPaid } from './accounts.js';
 import { formatCurrency, formatDateBR, getCurrentReferenceMonth } from './formatters.js';
 
 function isOverdue(account) {
@@ -15,6 +15,12 @@ function isOverdue(account) {
   return dueDate < today;
 }
 
+function getAccountStatusLabel(account) {
+  if (account.status === 'paid') return 'Pago';
+  if (isOverdue(account)) return 'Atrasado';
+  return 'Em aberto';
+}
+
 function buildAccountsList(accounts) {
   if (!accounts.length) {
     return '<div class="empty-state">Nenhuma conta cadastrada ainda.</div>';
@@ -27,10 +33,13 @@ function buildAccountsList(accounts) {
           <div>
             <strong>${account.description}</strong>
             <div class="account-meta">
-              Vencimento: ${formatDateBR(account.dueDate)} • Status: ${isOverdue(account) ? 'Atrasado' : 'Em aberto'}
+              Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}
             </div>
           </div>
-          <div class="account-value">${formatCurrency(account.amount)}</div>
+          <div class="account-actions">
+            <div class="account-value">${formatCurrency(account.amount)}</div>
+            ${account.status === 'open' ? `<button class="btn btn-secondary pay-account-btn" data-account-id="${account.id}" type="button">Marcar como paga</button>` : ''}
+          </div>
         </div>
       `).join('')}
     </div>
@@ -161,6 +170,22 @@ export async function renderDashboard(app, appUser) {
       </nav>
     </section>
   `;
+
+  document.querySelectorAll('.pay-account-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const accountId = button.dataset.accountId;
+      button.textContent = 'Baixando...';
+      button.disabled = true;
+
+      try {
+        await markAccountAsPaid(appUser, accountId);
+        await renderDashboard(app, appUser);
+      } catch (error) {
+        console.error('Erro ao marcar conta como paga:', error);
+        button.textContent = 'Erro ao baixar';
+      }
+    });
+  });
 
   const openModalButton = document.querySelector('#open-account-modal');
 
