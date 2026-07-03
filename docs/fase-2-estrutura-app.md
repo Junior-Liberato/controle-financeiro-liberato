@@ -15,11 +15,11 @@ Criar a primeira versão técnica do aplicativo com:
 
 ```txt
 CSS base expandido: concluído
-index.html: pendente
-firebase-init.js: pendente
-auth.js: pendente
-dashboard.js: pendente
-app.js completo: pendente
+index.html: concluído
+firebase-init.js: concluído
+auth.js: concluído
+dashboard.js: concluído
+app.js completo: concluído
 ```
 
 ## Observação técnica
@@ -38,7 +38,7 @@ js/dashboard.js
 js/app.js
 ```
 
-## Fluxo esperado
+## Fluxo implementado
 
 ```txt
 Abrir index.html
@@ -67,4 +67,10 @@ Se usuário não autorizado: sair e bloquear acesso
 
 ## Próximo passo
 
-Criar manualmente o arquivo `index.html` se o conector continuar bloqueando a criação automática.
+Testar localmente ou publicar uma prévia para validar:
+
+1. carregamento da tela de login;
+2. login com usuário autorizado;
+3. leitura do documento do usuário no Firestore;
+4. abertura do dashboard;
+5. botão sair.
