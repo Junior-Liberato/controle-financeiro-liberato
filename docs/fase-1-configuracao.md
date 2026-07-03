@@ -44,7 +44,9 @@ App Web criado: concluído
 Arquivo js/firebase.js configurado: concluído
 Authentication ativado: concluído
 Usuários iniciais criados: concluído
-Firestore Database: pendente
+Firestore Database criado: concluído
+Local do Firestore: southamerica-east1 (São Paulo)
+Regras de segurança Firestore: pendente
 ```
 
 ## Serviços ativados
@@ -72,7 +74,7 @@ Concluído
 
 ### Firestore Database
 
-Modo recomendado:
+Modo:
 
 ```txt
 Produção
@@ -81,15 +83,13 @@ Produção
 Localização:
 
 ```txt
-South America, se disponível
+southamerica-east1 (São Paulo)
 ```
-
-Se não estiver disponível, usar a opção recomendada pelo Firebase.
 
 Status:
 
 ```txt
-Pendente
+Concluído
 ```
 
 ## Configuração Web App
@@ -119,7 +119,7 @@ A segurança real será feita por:
 
 ## Próxima etapa técnica
 
-Depois de criar o Firestore Database, o projeto seguirá para:
+Agora o projeto seguirá para:
 
 1. criação das regras de segurança;
 2. inicialização do Firebase no JavaScript;
