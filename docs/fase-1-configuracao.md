@@ -47,7 +47,7 @@ Usuários iniciais criados: concluído
 Firestore Database criado: concluído
 Local do Firestore: southamerica-east1 (São Paulo)
 Regras de segurança Firestore: concluído
-Base inicial Firestore: pendente
+Base inicial Firestore: concluído
 ```
 
 ## Serviços ativados
@@ -101,6 +101,22 @@ Status:
 Concluído
 ```
 
+### Base inicial Firestore
+
+Documentos iniciais:
+
+```txt
+families/familia-liberato
+users/OZI2Zs8FjzfUHLaB1FwsEoErErV2
+users/KGdXVZw770UUiykGvhTtKi9wGDI3
+```
+
+Status:
+
+```txt
+Concluído
+```
+
 ## Configuração Web App
 
 Aplicativo Web criado:
@@ -130,14 +146,12 @@ A segurança real será feita por:
 
 Agora o projeto seguirá para:
 
-1. criação da família inicial;
-2. criação dos documentos dos usuários;
-3. criação das categorias iniciais;
-4. criação das formas de pagamento iniciais;
-5. inicialização do Firebase no JavaScript;
-6. tela de login;
-7. validação de usuário autorizado;
-8. conexão com Firestore.
+1. inicialização do Firebase no JavaScript;
+2. tela de login;
+3. validação de usuário autorizado;
+4. carregamento do usuário ativo;
+5. conexão com Firestore;
+6. criação do dashboard inicial.
 
 ## Arquivos já criados
 
@@ -150,4 +164,5 @@ docs/firebase-arquitetura.md
 docs/regras-negocio.md
 docs/fase-1-configuracao.md
 docs/firestore-security-rules.md
+docs/base-inicial-firestore.md
 ```
