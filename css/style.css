@@ -239,28 +239,65 @@ textarea.input {
 
 .accounts-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .account-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.72);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.72));
 }
 
-.account-row strong {
+.account-row-premium {
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+}
+
+.account-main {
+  display: grid;
+  gap: 8px;
+}
+
+.account-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.account-title-line strong {
   display: block;
-  margin-bottom: 4px;
+  margin: 0;
+  font-size: 18px;
+}
+
+.account-category-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-subtitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .account-meta {
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.55;
 }
 
 .account-actions {
@@ -270,15 +307,18 @@ textarea.input {
 }
 
 .account-value {
-  font-weight: 800;
+  font-weight: 900;
+  font-size: 22px;
   text-align: right;
 }
 
-.pay-account-btn {
+.pay-account-btn,
+.delete-account-btn {
   min-height: 36px;
   padding: 0 12px;
   border-radius: 12px;
   font-size: 12px;
+  width: 150px;
 }
 
 .modal-backdrop {
@@ -301,6 +341,10 @@ textarea.input {
   background: #111827;
   box-shadow: var(--shadow);
   padding: 22px;
+}
+
+.small-modal {
+  width: min(100%, 440px);
 }
 
 .modal-header {
@@ -381,6 +425,11 @@ textarea.input {
 
   .account-value {
     text-align: left;
+  }
+
+  .pay-account-btn,
+  .delete-account-btn {
+    width: 100%;
   }
 
   .modal-actions {
