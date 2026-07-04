@@ -3,7 +3,7 @@ let activeView = 'home';
 const viewConfig = {
   home: {
     label: 'Início',
-    selectors: ['.dashboard-grid', '.secondary-metrics']
+    selectors: ['.dashboard-grid', '.secondary-metrics', '.home-recent-panel']
   },
   accounts: {
     label: 'Contas',
@@ -29,7 +29,7 @@ function ensureNavigationStyles() {
   const link = document.createElement('link');
   link.id = 'navigation-css';
   link.rel = 'stylesheet';
-  link.href = 'css/navigation.css?v=20260704-20';
+  link.href = 'css/navigation.css?v=20260704-21';
   document.head.appendChild(link);
 }
 
