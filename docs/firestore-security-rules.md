@@ -111,6 +111,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /userSecurity/{userId} {
+      allow read, create, update: if isActiveUser()
+        && request.auth.uid == userId
+        && request.resource.data.familyId == userFamilyId();
+      allow delete: if false;
+    }
+
     match /families/{familyId} {
       allow read: if isActiveUser() && familyId == userFamilyId();
       allow create, update, delete: if isAdmin() && familyId == userFamilyId();
@@ -122,6 +129,16 @@ service cloud.firestore {
     }
 
     match /revenues/{docId} {
+      allow read, update, delete: if belongsToUserFamily();
+      allow create: if newDataBelongsToUserFamily();
+    }
+
+    match /fixedAccounts/{docId} {
+      allow read, update, delete: if belongsToUserFamily();
+      allow create: if newDataBelongsToUserFamily();
+    }
+
+    match /incomeProfiles/{docId} {
       allow read, update, delete: if belongsToUserFamily();
       allow create: if newDataBelongsToUserFamily();
     }
@@ -192,4 +209,12 @@ Antes do aplicativo funcionar, será necessário criar manualmente no Firestore:
 2. Documento do usuário Junior.
 3. Documento do usuário Júlia.
 
-Isso será feito na etapa de inicialização da base.
+## Atualização necessária para o PIN
+
+Com a criação do PIN, é necessário publicar as regras atualizadas no Firebase Console para liberar a coleção:
+
+```txt
+userSecurity
+```
+
+Cada usuário só pode ler e atualizar o próprio documento de segurança.
