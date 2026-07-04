@@ -49,10 +49,29 @@ function getCategoryLabel(categoryId) {
   return categories[categoryId] || 'Lançamento';
 }
 
+function getCreatedAtDate(account) {
+  if (account.createdAt?.toDate) return account.createdAt.toDate();
+  if (account.createdAt) return new Date(account.createdAt);
+  return null;
+}
+
 function getCreatedAtTime(account) {
-  if (account.createdAt?.toDate) return account.createdAt.toDate().getTime();
-  if (account.createdAt) return new Date(account.createdAt).getTime();
-  return 0;
+  const date = getCreatedAtDate(account);
+  return date ? date.getTime() : 0;
+}
+
+function formatCreatedAt(account) {
+  const date = getCreatedAtDate(account);
+
+  if (!date) return 'Data não informada';
+
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 function sortAccountsByLatest(accounts) {
@@ -101,18 +120,18 @@ function buildAccountsList(accounts) {
   return `
     <div class="accounts-list">
       ${sortedAccounts.map((account) => `
-        <div class="account-row account-row-premium">
+        <div class="account-row account-row-premium collapsed-account" data-account-id="${account.id}">
           <div class="account-main">
             <div class="account-title-line">
-              <span class="account-category-pill">${getCategoryLabel(account.categoryId)}</span>
               <strong>${getCategoryLabel(account.categoryId)}</strong>
+              <span class="account-created-date">${formatCreatedAt(account)}</span>
             </div>
-            <p class="account-subtitle">${account.notes || 'Sem observação informada.'}</p>
-            <div class="account-meta">
-              Descrição: ${account.description || '-'}<br>
-              ID: ${account.launchCode || account.id}<br>
-              Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}<br>
-              Lançado por: ${getCreatedByLabel(account)}
+            <p class="account-subtitle">${account.description || 'Sem descrição informada.'}</p>
+            <div class="account-details">
+              <div>Observação: ${account.notes || 'Sem observação informada.'}</div>
+              <div>ID: ${account.launchCode || account.id}</div>
+              <div>Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}</div>
+              <div>Lançado por: ${getCreatedByLabel(account)}</div>
             </div>
           </div>
           <div class="account-actions">
@@ -290,8 +309,15 @@ export async function renderDashboard(app, appUser) {
     </section>
   `;
 
+  document.querySelectorAll('.collapsed-account').forEach((card) => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+  });
+
   document.querySelectorAll('.pay-account-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async (event) => {
+      event.stopPropagation();
       const accountId = button.dataset.accountId;
       button.textContent = 'Baixando...';
       button.disabled = true;
@@ -307,7 +333,8 @@ export async function renderDashboard(app, appUser) {
   });
 
   document.querySelectorAll('.delete-account-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async (event) => {
+      event.stopPropagation();
       const accountId = button.dataset.accountId;
       const account = accounts.find((item) => item.id === accountId);
 
