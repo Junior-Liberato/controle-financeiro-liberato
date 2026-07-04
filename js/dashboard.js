@@ -1,5 +1,10 @@
-import { createAccount, listAccountsByMonth, markAccountAsPaid } from './accounts.js';
+import { archiveAccount, createAccount, listAccountsByMonth, markAccountAsPaid } from './accounts.js';
+import { auth } from './firebase-init.js';
 import { formatCurrency, formatDateBR, getCurrentReferenceMonth } from './formatters.js';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
 function isOverdue(account) {
   if (account.status !== 'open') return false;
@@ -25,18 +30,86 @@ function getCreatedByLabel(account) {
   return account.createdByName || account.createdBy || 'Não informado';
 }
 
+function getCategoryLabel(categoryId) {
+  const categories = {
+    agua: 'Água',
+    luz: 'Luz',
+    internet: 'Internet',
+    moradia: 'Moradia',
+    alimentacao: 'Alimentação',
+    'cartao-credito': 'Cartão de Crédito',
+    transporte: 'Transporte',
+    saude: 'Saúde',
+    educacao: 'Educação',
+    lazer: 'Lazer',
+    assinaturas: 'Assinaturas',
+    outros: 'Outros'
+  };
+
+  return categories[categoryId] || 'Lançamento';
+}
+
+function getCreatedAtTime(account) {
+  if (account.createdAt?.toDate) return account.createdAt.toDate().getTime();
+  if (account.createdAt) return new Date(account.createdAt).getTime();
+  return 0;
+}
+
+function sortAccountsByLatest(accounts) {
+  return [...accounts].sort((a, b) => getCreatedAtTime(b) - getCreatedAtTime(a));
+}
+
+function buildPasswordModal(account) {
+  return `
+    <div class="modal-backdrop" id="delete-password-modal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">Confirmação de segurança</span>
+            <h3>Excluir lançamento</h3>
+          </div>
+          <button class="btn btn-secondary" id="close-delete-modal" type="button">Fechar</button>
+        </div>
+
+        <p class="muted">Este lançamento foi criado por ${getCreatedByLabel(account)}. Para excluir, confirme sua senha de login.</p>
+
+        <form id="delete-password-form" class="form-stack">
+          <label class="field-label">
+            Senha
+            <input class="input" id="delete-password-input" type="password" required autocomplete="current-password">
+          </label>
+
+          <p id="delete-password-status" class="status-message"></p>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancel-delete-password" type="button">Cancelar</button>
+            <button class="btn btn-danger" type="submit">Confirmar exclusão</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
 function buildAccountsList(accounts) {
-  if (!accounts.length) {
+  const sortedAccounts = sortAccountsByLatest(accounts);
+
+  if (!sortedAccounts.length) {
     return '<div class="empty-state">Nenhuma conta cadastrada ainda.</div>';
   }
 
   return `
     <div class="accounts-list">
-      ${accounts.map((account) => `
-        <div class="account-row">
-          <div>
-            <strong>${account.description}</strong>
+      ${sortedAccounts.map((account) => `
+        <div class="account-row account-row-premium">
+          <div class="account-main">
+            <div class="account-title-line">
+              <span class="account-category-pill">${getCategoryLabel(account.categoryId)}</span>
+              <strong>${getCategoryLabel(account.categoryId)}</strong>
+            </div>
+            <p class="account-subtitle">${account.notes || 'Sem observação informada.'}</p>
             <div class="account-meta">
+              Descrição: ${account.description || '-'}<br>
               ID: ${account.launchCode || account.id}<br>
               Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}<br>
               Lançado por: ${getCreatedByLabel(account)}
@@ -45,6 +118,7 @@ function buildAccountsList(accounts) {
           <div class="account-actions">
             <div class="account-value">${formatCurrency(account.amount)}</div>
             ${account.status === 'open' ? `<button class="btn btn-secondary pay-account-btn" data-account-id="${account.id}" type="button">Marcar como paga</button>` : ''}
+            <button class="btn btn-danger delete-account-btn" data-account-id="${account.id}" type="button">Excluir</button>
           </div>
         </div>
       `).join('')}
@@ -113,6 +187,43 @@ function buildNewAccountModal(appUser, referenceMonth) {
       </div>
     </div>
   `;
+}
+
+async function confirmOtherUserDeletion(account) {
+  return new Promise((resolve) => {
+    document.body.insertAdjacentHTML('beforeend', buildPasswordModal(account));
+
+    const modal = document.querySelector('#delete-password-modal');
+    const closeButton = document.querySelector('#close-delete-modal');
+    const cancelButton = document.querySelector('#cancel-delete-password');
+    const form = document.querySelector('#delete-password-form');
+    const status = document.querySelector('#delete-password-status');
+
+    const close = (result) => {
+      modal?.remove();
+      resolve(result);
+    };
+
+    closeButton?.addEventListener('click', () => close(false));
+    cancelButton?.addEventListener('click', () => close(false));
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      status.textContent = 'Confirmando senha...';
+
+      try {
+        const currentUser = auth.currentUser;
+        const password = document.querySelector('#delete-password-input').value;
+        const credential = EmailAuthProvider.credential(currentUser.email, password);
+
+        await reauthenticateWithCredential(currentUser, credential);
+        close(true);
+      } catch (error) {
+        console.error('Erro ao confirmar senha:', error);
+        status.textContent = 'Senha inválida. Tente novamente.';
+      }
+    });
+  });
 }
 
 export async function renderDashboard(app, appUser) {
@@ -191,6 +302,33 @@ export async function renderDashboard(app, appUser) {
       } catch (error) {
         console.error('Erro ao marcar conta como paga:', error);
         button.textContent = 'Erro ao baixar';
+      }
+    });
+  });
+
+  document.querySelectorAll('.delete-account-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const accountId = button.dataset.accountId;
+      const account = accounts.find((item) => item.id === accountId);
+
+      if (!account) return;
+
+      const sameUser = account.createdBy === appUser.uid;
+      const confirmed = sameUser
+        ? window.confirm('Deseja realmente excluir este lançamento?')
+        : await confirmOtherUserDeletion(account);
+
+      if (!confirmed) return;
+
+      button.textContent = 'Excluindo...';
+      button.disabled = true;
+
+      try {
+        await archiveAccount(appUser, accountId);
+        await renderDashboard(app, appUser);
+      } catch (error) {
+        console.error('Erro ao excluir lançamento:', error);
+        button.textContent = 'Erro ao excluir';
       }
     });
   });
