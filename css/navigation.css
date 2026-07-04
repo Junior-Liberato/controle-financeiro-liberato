@@ -1,0 +1,27 @@
+.view-hidden {
+  display: none !important;
+}
+
+.empty-view-panel {
+  margin-top: 16px;
+}
+
+.clickable-budget-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.clickable-budget-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.budget-config-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .budget-config-btn {
+    width: 100%;
+  }
+}
