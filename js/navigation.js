@@ -23,6 +23,16 @@ const viewConfig = {
   }
 };
 
+function ensureNavigationStyles() {
+  if (document.querySelector('#navigation-css')) return;
+
+  const link = document.createElement('link');
+  link.id = 'navigation-css';
+  link.rel = 'stylesheet';
+  link.href = 'css/navigation.css?v=20260704-20';
+  document.head.appendChild(link);
+}
+
 function getAllManagedSelectors() {
   return Object.values(viewConfig)
     .flatMap((view) => view.selectors);
@@ -94,6 +104,7 @@ function upgradeBottomNav() {
 }
 
 export function setupNavigation() {
+  ensureNavigationStyles();
   upgradeBottomNav();
   applyView(activeView);
 }
