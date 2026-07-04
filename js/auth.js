@@ -36,9 +36,13 @@ export function observarAutenticacao(callback) {
       return;
     }
 
-    await updateDoc(userRef, {
-      lastAccessAt: serverTimestamp()
-    });
+    try {
+      await updateDoc(userRef, {
+        lastAccessAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.warn('Não foi possível atualizar o último acesso:', error);
+    }
 
     callback(firebaseUser, appUser);
   });
