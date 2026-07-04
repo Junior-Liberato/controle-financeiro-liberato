@@ -9,6 +9,7 @@ let observerStarted = false;
 let currentSettings = null;
 let rerenderCallback = null;
 let rewritingPanel = false;
+let globalClickStarted = false;
 
 function getReferenceMonth() {
   return document.querySelector('#reference-month-filter')?.value || new Date().toISOString().slice(0, 7);
@@ -93,7 +94,7 @@ function buildBudgetRuleGrid(ruleItems) {
   return `
     <div class="budget-rule-grid">
       ${ruleItems.map((item) => `
-        <article class="budget-rule-card ${item.status === 'above' ? 'budget-alert' : ''}" data-budget-key="${item.key}">
+        <article class="budget-rule-card clickable-budget-card ${item.status === 'above' ? 'budget-alert' : ''}" data-budget-key="${item.key}">
           <div class="budget-rule-title">
             <strong>${item.label}</strong>
             <span>${Math.round(item.percent * 100)}%</span>
@@ -114,6 +115,10 @@ function buildBudgetRuleGrid(ruleItems) {
 }
 
 function openExplanation(key) {
+  if (!key || !budgetGroups[key]) return;
+
+  document.querySelector('#budget-explanation-modal')?.remove();
+
   const item = {
     key,
     ...budgetGroups[key]
@@ -205,25 +210,34 @@ async function enhanceBudgetPanel() {
     planningHeader.insertAdjacentHTML('beforeend', buildBudgetSettingsButton());
   }
 
-  document.querySelector('#open-budget-settings')?.addEventListener('click', openSettingsModal);
+  const configButton = document.querySelector('#open-budget-settings');
+  if (configButton && configButton.dataset.ready !== 'true') {
+    configButton.dataset.ready = 'true';
+    configButton.addEventListener('click', openSettingsModal);
+  }
 
   await rewriteBudgetGrid();
+}
 
-  document.querySelectorAll('.budget-rule-card').forEach((card) => {
-    const key = card.dataset.budgetKey || Object.entries(budgetGroups).find(([, value]) => value.label === card.querySelector('.budget-rule-title strong')?.textContent?.trim())?.[0];
+function setupGlobalBudgetClick() {
+  if (globalClickStarted) return;
 
-    if (!key || card.dataset.explanationReady === 'true') return;
+  document.addEventListener('click', (event) => {
+    const card = event.target.closest('.budget-rule-card');
+    if (!card) return;
 
-    card.dataset.explanationReady = 'true';
-    card.classList.add('clickable-budget-card');
-    card.addEventListener('click', () => openExplanation(key));
+    const key = card.dataset.budgetKey;
+    openExplanation(key);
   });
+
+  globalClickStarted = true;
 }
 
 export async function setupBudgetUi(appUser, rerender) {
   currentUser = appUser;
   rerenderCallback = rerender;
   currentSettings = await getBudgetSettings(appUser);
+  setupGlobalBudgetClick();
   await enhanceBudgetPanel();
 
   if (observerStarted) return;
