@@ -6,6 +6,9 @@ import {
   reauthenticateWithCredential
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
+let selectedReferenceMonth = getCurrentReferenceMonth();
+let selectedStatusFilter = 'all';
+
 function isOverdue(account) {
   if (account.status !== 'open') return false;
 
@@ -24,6 +27,16 @@ function getAccountStatusLabel(account) {
   if (account.status === 'paid') return 'Pago';
   if (isOverdue(account)) return 'Atrasado';
   return 'Em aberto';
+}
+
+function getAccountStatusKey(account) {
+  if (account.status === 'paid') return 'paid';
+  if (isOverdue(account)) return 'overdue';
+  return 'open';
+}
+
+function getAccountValueClass(account) {
+  return `account-value status-${getAccountStatusKey(account)}`;
 }
 
 function getCreatedByLabel(account) {
@@ -78,6 +91,38 @@ function sortAccountsByLatest(accounts) {
   return [...accounts].sort((a, b) => getCreatedAtTime(b) - getCreatedAtTime(a));
 }
 
+function filterAccounts(accounts) {
+  if (selectedStatusFilter === 'all') return accounts;
+
+  return accounts.filter((account) => getAccountStatusKey(account) === selectedStatusFilter);
+}
+
+function buildDashboardControls() {
+  const filters = [
+    { key: 'all', label: 'Todos' },
+    { key: 'open', label: 'Em aberto' },
+    { key: 'paid', label: 'Pagos' },
+    { key: 'overdue', label: 'Atrasados' }
+  ];
+
+  return `
+    <section class="dashboard-controls">
+      <label class="month-filter-label">
+        Mês de referência
+        <input class="input month-filter-input" id="reference-month-filter" type="month" value="${selectedReferenceMonth}">
+      </label>
+
+      <div class="status-filter-group" aria-label="Filtro por status">
+        ${filters.map((filter) => `
+          <button class="status-filter-btn ${selectedStatusFilter === filter.key ? 'active' : ''}" data-status-filter="${filter.key}" type="button">
+            ${filter.label}
+          </button>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function buildPasswordModal(account) {
   return `
     <div class="modal-backdrop" id="delete-password-modal">
@@ -111,31 +156,34 @@ function buildPasswordModal(account) {
 }
 
 function buildAccountsList(accounts) {
-  const sortedAccounts = sortAccountsByLatest(accounts);
+  const filteredAccounts = filterAccounts(accounts);
+  const sortedAccounts = sortAccountsByLatest(filteredAccounts);
 
   if (!sortedAccounts.length) {
-    return '<div class="empty-state">Nenhuma conta cadastrada ainda.</div>';
+    return '<div class="empty-state">Nenhum lançamento encontrado para os filtros selecionados.</div>';
   }
 
   return `
     <div class="accounts-list">
       ${sortedAccounts.map((account) => `
-        <div class="account-row account-row-premium collapsed-account" data-account-id="${account.id}">
+        <div class="account-row account-row-premium collapsed-account status-card-${getAccountStatusKey(account)}" data-account-id="${account.id}">
           <div class="account-main">
             <div class="account-title-line">
               <strong>${getCategoryLabel(account.categoryId)}</strong>
               <span class="account-created-date">${formatCreatedAt(account)}</span>
+              <span class="account-status-pill status-pill-${getAccountStatusKey(account)}">${getAccountStatusLabel(account)}</span>
             </div>
             <p class="account-subtitle">${account.description || 'Sem descrição informada.'}</p>
             <div class="account-details">
               <div>Observação: ${account.notes || 'Sem observação informada.'}</div>
               <div>ID: ${account.launchCode || account.id}</div>
-              <div>Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}</div>
+              <div>Vencimento: ${formatDateBR(account.dueDate)}</div>
+              <div>Status: ${getAccountStatusLabel(account)}</div>
               <div>Lançado por: ${getCreatedByLabel(account)}</div>
             </div>
           </div>
           <div class="account-actions">
-            <div class="account-value">${formatCurrency(account.amount)}</div>
+            <div class="${getAccountValueClass(account)}">${formatCurrency(account.amount)}</div>
             ${account.status === 'open' ? `<button class="btn btn-secondary pay-account-btn" data-account-id="${account.id}" type="button">Marcar como paga</button>` : ''}
             <button class="btn btn-danger delete-account-btn" data-account-id="${account.id}" type="button">Excluir</button>
           </div>
@@ -247,8 +295,7 @@ async function confirmOtherUserDeletion(account) {
 
 export async function renderDashboard(app, appUser) {
   const userName = appUser?.name || 'Usuário';
-  const referenceMonth = getCurrentReferenceMonth();
-  const accounts = await listAccountsByMonth(appUser, referenceMonth);
+  const accounts = await listAccountsByMonth(appUser, selectedReferenceMonth);
 
   const totalExpenses = accounts
     .filter((account) => account.status !== 'cancelled')
@@ -260,6 +307,10 @@ export async function renderDashboard(app, appUser) {
 
   const totalOverdue = accounts
     .filter((account) => isOverdue(account))
+    .reduce((sum, account) => sum + Number(account.amount || 0), 0);
+
+  const totalPaid = accounts
+    .filter((account) => account.status === 'paid')
     .reduce((sum, account) => sum + Number(account.amount || 0), 0);
 
   app.innerHTML = `
@@ -291,6 +342,19 @@ export async function renderDashboard(app, appUser) {
         </article>
       </section>
 
+      <section class="secondary-metrics">
+        <article class="mini-metric">
+          <span>Pago no mês</span>
+          <strong class="status-paid">${formatCurrency(totalPaid)}</strong>
+        </article>
+        <article class="mini-metric">
+          <span>Lançamentos</span>
+          <strong>${accounts.length}</strong>
+        </article>
+      </section>
+
+      ${buildDashboardControls()}
+
       <section class="panel">
         <div class="panel-header">
           <h3>Próximos vencimentos</h3>
@@ -308,6 +372,18 @@ export async function renderDashboard(app, appUser) {
       </nav>
     </section>
   `;
+
+  document.querySelector('#reference-month-filter')?.addEventListener('change', async (event) => {
+    selectedReferenceMonth = event.target.value || getCurrentReferenceMonth();
+    await renderDashboard(app, appUser);
+  });
+
+  document.querySelectorAll('.status-filter-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      selectedStatusFilter = button.dataset.statusFilter || 'all';
+      await renderDashboard(app, appUser);
+    });
+  });
 
   document.querySelectorAll('.collapsed-account').forEach((card) => {
     card.addEventListener('click', () => {
@@ -363,7 +439,7 @@ export async function renderDashboard(app, appUser) {
   const openModalButton = document.querySelector('#open-account-modal');
 
   openModalButton?.addEventListener('click', () => {
-    document.body.insertAdjacentHTML('beforeend', buildNewAccountModal(appUser, referenceMonth));
+    document.body.insertAdjacentHTML('beforeend', buildNewAccountModal(appUser, selectedReferenceMonth));
 
     const modal = document.querySelector('#account-modal');
     const closeButton = document.querySelector('#close-account-modal');
@@ -386,7 +462,7 @@ export async function renderDashboard(app, appUser) {
           amount: document.querySelector('#account-amount').value,
           dueDate: document.querySelector('#account-due-date').value,
           categoryId: document.querySelector('#account-category').value,
-          referenceMonth,
+          referenceMonth: selectedReferenceMonth,
           notes: document.querySelector('#account-notes').value.trim()
         });
 
