@@ -1,0 +1,73 @@
+@media (min-width: 761px) {
+  .app-layout {
+    padding-bottom: 34px;
+  }
+
+  .bottom-nav {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    max-width: none;
+    transform: none;
+    margin: 18px auto 0;
+  }
+}
+
+@media (max-width: 1020px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budget-rule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-layout {
+    padding: 18px 12px 120px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .dashboard-grid,
+  .secondary-metrics,
+  .dashboard-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .planning-header {
+    display: grid;
+  }
+
+  .panel-header {
+    display: grid;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .account-title-line {
+    gap: 8px;
+  }
+
+  .account-created-date {
+    font-size: 11px;
+  }
+}
