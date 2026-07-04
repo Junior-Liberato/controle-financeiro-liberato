@@ -2,17 +2,17 @@ export const budgetGroups = {
   needs: {
     label: 'Necessidades',
     percent: 0.5,
-    description: 'Moradia, contas essenciais, alimentação, saúde e transporte essencial.'
+    description: 'Gastos essenciais para manter a casa e a rotina funcionando, como moradia, água, luz, internet, alimentação, saúde e transporte.'
   },
   wants: {
     label: 'Desejos',
     percent: 0.3,
-    description: 'Lazer, assinaturas, compras pessoais e gastos flexíveis.'
+    description: 'Gastos que melhoram o conforto e o lazer, mas que podem ser ajustados quando necessário, como streaming, lazer, restaurantes e compras pessoais.'
   },
   goals: {
     label: 'Reserva e objetivos',
     percent: 0.2,
-    description: 'Reserva, investimentos, metas e amortizações planejadas.'
+    description: 'Dinheiro reservado para segurança e crescimento financeiro, como reserva de emergência, investimentos, metas e amortizações planejadas.'
   }
 };
 
@@ -35,11 +35,17 @@ export function getBudgetGroupByCategory(categoryId) {
   return map[categoryId] || 'wants';
 }
 
-export function calculateBudgetRule(accounts, totalIncome) {
+export function calculateBudgetRule(accounts, totalIncome, customSettings = null) {
+  const settings = customSettings || {
+    needs: 50,
+    wants: 30,
+    goals: 20
+  };
+
   const summary = {
-    needs: { ...budgetGroups.needs, actual: 0 },
-    wants: { ...budgetGroups.wants, actual: 0 },
-    goals: { ...budgetGroups.goals, actual: 0 }
+    needs: { ...budgetGroups.needs, percent: Number(settings.needs || 0) / 100, actual: 0 },
+    wants: { ...budgetGroups.wants, percent: Number(settings.wants || 0) / 100, actual: 0 },
+    goals: { ...budgetGroups.goals, percent: Number(settings.goals || 0) / 100, actual: 0 }
   };
 
   accounts
