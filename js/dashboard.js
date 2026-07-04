@@ -1,10 +1,11 @@
 import { archiveAccount, createAccount, listAccountsByMonth, markAccountAsPaid } from './accounts.js';
-import { auth } from './firebase-init.js';
+import { sair } from './auth.js';
 import { formatCurrency, formatDateBR, getCurrentReferenceMonth } from './formatters.js';
 import {
-  EmailAuthProvider,
-  reauthenticateWithCredential
-} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+  createOrUpdatePin,
+  hasPinConfigured,
+  verifyPin
+} from './security.js';
 
 let selectedReferenceMonth = getCurrentReferenceMonth();
 let selectedStatusFilter = 'all';
@@ -158,33 +159,105 @@ function buildDashboardControls(accounts) {
   `;
 }
 
-function buildPasswordModal(account) {
+function buildPinSetupModal(title = 'Criar PIN de segurança') {
   return `
-    <div class="modal-backdrop" id="delete-password-modal">
+    <div class="modal-backdrop" id="pin-setup-modal">
       <div class="modal-card small-modal">
         <div class="modal-header">
           <div>
-            <span class="eyebrow">Confirmação de segurança</span>
-            <h3>Excluir lançamento</h3>
+            <span class="eyebrow">Segurança</span>
+            <h3>${title}</h3>
           </div>
-          <button class="btn btn-secondary" id="close-delete-modal" type="button">Fechar</button>
+          <button class="btn btn-secondary" id="close-pin-setup" type="button">Fechar</button>
         </div>
 
-        <p class="muted">Este lançamento foi criado por ${getCreatedByLabel(account)}. Para excluir, confirme sua senha de login.</p>
+        <p class="muted">Crie um PIN de 4 números. Ele será usado para marcar contas como pagas e excluir lançamentos.</p>
 
-        <form id="delete-password-form" class="form-stack">
+        <form id="pin-setup-form" class="form-stack">
           <label class="field-label">
-            Senha
-            <input class="input" id="delete-password-input" type="password" required autocomplete="current-password">
+            Novo PIN
+            <input class="input pin-input" id="new-pin-input" type="password" inputmode="numeric" maxlength="4" required placeholder="0000">
           </label>
 
-          <p id="delete-password-status" class="status-message"></p>
+          <label class="field-label">
+            Confirmar PIN
+            <input class="input pin-input" id="confirm-pin-input" type="password" inputmode="numeric" maxlength="4" required placeholder="0000">
+          </label>
+
+          <label class="field-label">
+            Senha de login
+            <input class="input" id="pin-password-input" type="password" required autocomplete="current-password">
+          </label>
+
+          <p id="pin-setup-status" class="status-message"></p>
 
           <div class="modal-actions">
-            <button class="btn btn-secondary" id="cancel-delete-password" type="button">Cancelar</button>
-            <button class="btn btn-danger" type="submit">Confirmar exclusão</button>
+            <button class="btn btn-secondary" id="cancel-pin-setup" type="button">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar PIN</button>
           </div>
         </form>
+      </div>
+    </div>
+  `;
+}
+
+function buildPinConfirmModal({ title, description, requireReason = false }) {
+  return `
+    <div class="modal-backdrop" id="pin-confirm-modal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">Confirmação por PIN</span>
+            <h3>${title}</h3>
+          </div>
+          <button class="btn btn-secondary" id="close-pin-confirm" type="button">Fechar</button>
+        </div>
+
+        <p class="muted">${description}</p>
+
+        <form id="pin-confirm-form" class="form-stack">
+          <label class="field-label">
+            PIN de 4 dígitos
+            <input class="input pin-input" id="confirm-action-pin" type="password" inputmode="numeric" maxlength="4" required placeholder="0000">
+          </label>
+
+          ${requireReason ? `
+            <label class="field-label">
+              Justificativa obrigatória
+              <textarea class="input" id="delete-reason-input" required placeholder="Explique por que este lançamento será excluído."></textarea>
+            </label>
+          ` : ''}
+
+          <p id="pin-confirm-status" class="status-message"></p>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancel-pin-confirm" type="button">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Confirmar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+function buildSettingsModal() {
+  return `
+    <div class="modal-backdrop" id="settings-modal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">Configurações</span>
+            <h3>Preferências do sistema</h3>
+          </div>
+          <button class="btn btn-secondary" id="close-settings-modal" type="button">Fechar</button>
+        </div>
+
+        <div class="settings-list">
+          <button class="settings-option" id="change-pin-option" type="button">
+            <strong>Alterar PIN</strong>
+            <span>Atualize o PIN de 4 dígitos usado em pagamentos e exclusões.</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -229,7 +302,7 @@ function buildAccountsList(accounts) {
   `;
 }
 
-function buildNewAccountModal(appUser, referenceMonth) {
+function buildNewAccountModal(referenceMonth) {
   return `
     <div class="modal-backdrop" id="account-modal">
       <div class="modal-card">
@@ -292,15 +365,25 @@ function buildNewAccountModal(appUser, referenceMonth) {
   `;
 }
 
-async function confirmOtherUserDeletion(account) {
-  return new Promise((resolve) => {
-    document.body.insertAdjacentHTML('beforeend', buildPasswordModal(account));
+function setupPinInputs(scope = document) {
+  scope.querySelectorAll('.pin-input').forEach((input) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 4);
+    });
+  });
+}
 
-    const modal = document.querySelector('#delete-password-modal');
-    const closeButton = document.querySelector('#close-delete-modal');
-    const cancelButton = document.querySelector('#cancel-delete-password');
-    const form = document.querySelector('#delete-password-form');
-    const status = document.querySelector('#delete-password-status');
+async function openPinSetup(appUser, title = 'Criar PIN de segurança') {
+  return new Promise((resolve) => {
+    document.body.insertAdjacentHTML('beforeend', buildPinSetupModal(title));
+
+    const modal = document.querySelector('#pin-setup-modal');
+    const closeButton = document.querySelector('#close-pin-setup');
+    const cancelButton = document.querySelector('#cancel-pin-setup');
+    const form = document.querySelector('#pin-setup-form');
+    const status = document.querySelector('#pin-setup-status');
+
+    setupPinInputs(modal);
 
     const close = (result) => {
       modal?.remove();
@@ -312,20 +395,109 @@ async function confirmOtherUserDeletion(account) {
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
-      status.textContent = 'Confirmando senha...';
+
+      const pin = document.querySelector('#new-pin-input').value;
+      const confirmPin = document.querySelector('#confirm-pin-input').value;
+      const password = document.querySelector('#pin-password-input').value;
+
+      if (!/^\d{4}$/.test(pin)) {
+        status.textContent = 'O PIN precisa ter exatamente 4 números.';
+        return;
+      }
+
+      if (pin !== confirmPin) {
+        status.textContent = 'Os PINs informados não conferem.';
+        return;
+      }
+
+      status.textContent = 'Salvando PIN...';
 
       try {
-        const currentUser = auth.currentUser;
-        const password = document.querySelector('#delete-password-input').value;
-        const credential = EmailAuthProvider.credential(currentUser.email, password);
-
-        await reauthenticateWithCredential(currentUser, credential);
+        await createOrUpdatePin(appUser, pin, password);
         close(true);
       } catch (error) {
-        console.error('Erro ao confirmar senha:', error);
-        status.textContent = 'Senha inválida. Tente novamente.';
+        console.error('Erro ao salvar PIN:', error);
+        status.textContent = 'Não foi possível salvar o PIN. Confira sua senha de login.';
       }
     });
+  });
+}
+
+async function ensurePinConfigured(appUser) {
+  const configured = await hasPinConfigured(appUser.uid);
+
+  if (configured) return true;
+
+  return openPinSetup(appUser, 'Criar PIN de segurança');
+}
+
+async function requestPinConfirmation(appUser, options) {
+  const hasPin = await ensurePinConfigured(appUser);
+
+  if (!hasPin) return { confirmed: false, reason: '' };
+
+  return new Promise((resolve) => {
+    document.body.insertAdjacentHTML('beforeend', buildPinConfirmModal(options));
+
+    const modal = document.querySelector('#pin-confirm-modal');
+    const closeButton = document.querySelector('#close-pin-confirm');
+    const cancelButton = document.querySelector('#cancel-pin-confirm');
+    const form = document.querySelector('#pin-confirm-form');
+    const status = document.querySelector('#pin-confirm-status');
+
+    setupPinInputs(modal);
+
+    const close = (result) => {
+      modal?.remove();
+      resolve(result);
+    };
+
+    closeButton?.addEventListener('click', () => close({ confirmed: false, reason: '' }));
+    cancelButton?.addEventListener('click', () => close({ confirmed: false, reason: '' }));
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const pin = document.querySelector('#confirm-action-pin').value;
+      const reasonInput = document.querySelector('#delete-reason-input');
+      const reason = reasonInput?.value.trim() || '';
+
+      if (options.requireReason && !reason) {
+        status.textContent = 'Informe a justificativa para excluir lançamento de outro usuário.';
+        return;
+      }
+
+      status.textContent = 'Validando PIN...';
+
+      try {
+        const validPin = await verifyPin(appUser.uid, pin);
+
+        if (!validPin) {
+          status.textContent = 'PIN inválido. Tente novamente.';
+          return;
+        }
+
+        close({ confirmed: true, reason });
+      } catch (error) {
+        console.error('Erro ao validar PIN:', error);
+        status.textContent = 'Não foi possível validar o PIN.';
+      }
+    });
+  });
+}
+
+function openSettings(appUser) {
+  document.body.insertAdjacentHTML('beforeend', buildSettingsModal());
+
+  const modal = document.querySelector('#settings-modal');
+  const closeButton = document.querySelector('#close-settings-modal');
+  const changePinButton = document.querySelector('#change-pin-option');
+
+  closeButton?.addEventListener('click', () => modal?.remove());
+
+  changePinButton?.addEventListener('click', async () => {
+    modal?.remove();
+    await openPinSetup(appUser, 'Alterar PIN de segurança');
   });
 }
 
@@ -356,7 +528,10 @@ export async function renderDashboard(app, appUser) {
           <span class="eyebrow">Sistema Financeiro Familiar</span>
           <h2>Olá, ${userName}</h2>
         </div>
-        <button id="logout-btn" class="btn btn-secondary">Sair</button>
+        <div class="topbar-actions">
+          <button id="settings-btn" class="btn btn-secondary icon-btn" title="Configurações" type="button">⚙️</button>
+          <button id="logout-btn" class="btn btn-secondary">Sair</button>
+        </div>
       </header>
 
       <section class="dashboard-grid">
@@ -409,6 +584,14 @@ export async function renderDashboard(app, appUser) {
     </section>
   `;
 
+  document.querySelector('#logout-btn')?.addEventListener('click', async () => {
+    await sair();
+  });
+
+  document.querySelector('#settings-btn')?.addEventListener('click', () => {
+    openSettings(appUser);
+  });
+
   document.querySelector('#reference-month-filter')?.addEventListener('change', async (event) => {
     selectedReferenceMonth = event.target.value || getCurrentReferenceMonth();
     selectedUserFilter = 'all';
@@ -435,6 +618,15 @@ export async function renderDashboard(app, appUser) {
     button.addEventListener('click', async (event) => {
       event.stopPropagation();
       const accountId = button.dataset.accountId;
+
+      const pinResult = await requestPinConfirmation(appUser, {
+        title: 'Marcar como paga',
+        description: 'Informe seu PIN para confirmar o pagamento deste lançamento.',
+        requireReason: false
+      });
+
+      if (!pinResult.confirmed) return;
+
       button.textContent = 'Baixando...';
       button.disabled = true;
 
@@ -456,18 +648,22 @@ export async function renderDashboard(app, appUser) {
 
       if (!account) return;
 
-      const sameUser = account.createdBy === appUser.uid;
-      const confirmed = sameUser
-        ? window.confirm('Deseja realmente excluir este lançamento?')
-        : await confirmOtherUserDeletion(account);
+      const isOtherUserAccount = account.createdBy !== appUser.uid;
+      const pinResult = await requestPinConfirmation(appUser, {
+        title: 'Excluir lançamento',
+        description: isOtherUserAccount
+          ? 'Este lançamento foi criado por outro usuário. Informe seu PIN e uma justificativa para excluir.'
+          : 'Informe seu PIN para excluir este lançamento.',
+        requireReason: isOtherUserAccount
+      });
 
-      if (!confirmed) return;
+      if (!pinResult.confirmed) return;
 
       button.textContent = 'Excluindo...';
       button.disabled = true;
 
       try {
-        await archiveAccount(appUser, accountId);
+        await archiveAccount(appUser, accountId, pinResult.reason);
         await renderDashboard(app, appUser);
       } catch (error) {
         console.error('Erro ao excluir lançamento:', error);
@@ -479,7 +675,7 @@ export async function renderDashboard(app, appUser) {
   const openModalButton = document.querySelector('#open-account-modal');
 
   openModalButton?.addEventListener('click', () => {
-    document.body.insertAdjacentHTML('beforeend', buildNewAccountModal(appUser, selectedReferenceMonth));
+    document.body.insertAdjacentHTML('beforeend', buildNewAccountModal(selectedReferenceMonth));
 
     const modal = document.querySelector('#account-modal');
     const closeButton = document.querySelector('#close-account-modal');
