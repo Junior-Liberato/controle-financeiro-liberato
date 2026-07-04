@@ -11,13 +11,47 @@ import {
   Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
+function getCategoryPrefix(categoryId) {
+  const prefixes = {
+    agua: 'AGU',
+    luz: 'LUZ',
+    internet: 'INT',
+    moradia: 'MOR',
+    alimentacao: 'ALI',
+    'cartao-credito': 'CAR',
+    transporte: 'TRA',
+    saude: 'SAU',
+    educacao: 'EDU',
+    lazer: 'LAZ',
+    assinaturas: 'ASS',
+    outros: 'OUT'
+  };
+
+  return prefixes[categoryId] || 'LAN';
+}
+
+function generateLaunchCode(categoryId) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  const second = String(now.getSeconds()).padStart(2, '0');
+  const random = String(Math.floor(Math.random() * 900) + 100);
+
+  return `${getCategoryPrefix(categoryId)}-${year}${month}${day}-${hour}${minute}${second}-${random}`;
+}
+
 export async function createAccount(appUser, accountData) {
   const dueDate = new Date(`${accountData.dueDate}T12:00:00`);
+  const categoryId = accountData.categoryId || 'outros';
 
   return addDoc(collection(db, 'accounts'), {
     familyId: appUser.familyId,
+    launchCode: generateLaunchCode(categoryId),
     description: accountData.description,
-    categoryId: accountData.categoryId || 'outros',
+    categoryId,
     amount: Number(accountData.amount),
     dueDate: Timestamp.fromDate(dueDate),
     referenceMonth: accountData.referenceMonth,
@@ -29,8 +63,10 @@ export async function createAccount(appUser, accountData) {
     isRecurring: false,
     recurrenceId: null,
     createdBy: appUser.uid,
+    createdByName: appUser.name || appUser.email || 'Usuário',
     createdAt: serverTimestamp(),
     updatedBy: appUser.uid,
+    updatedByName: appUser.name || appUser.email || 'Usuário',
     updatedAt: serverTimestamp(),
     isArchived: false
   });
@@ -51,6 +87,7 @@ export async function listAccountsByMonth(appUser, referenceMonth) {
     ...document.data()
   }));
 }
+
 export async function markAccountAsPaid(appUser, accountId) {
   const accountRef = doc(db, 'accounts', accountId);
 
@@ -58,6 +95,7 @@ export async function markAccountAsPaid(appUser, accountId) {
     status: 'paid',
     paidAt: serverTimestamp(),
     updatedBy: appUser.uid,
+    updatedByName: appUser.name || appUser.email || 'Usuário',
     updatedAt: serverTimestamp()
   });
 }
