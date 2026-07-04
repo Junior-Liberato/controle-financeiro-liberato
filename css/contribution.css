@@ -1,0 +1,105 @@
+.income-contribution-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+
+.income-contribution-header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.income-contribution-header strong {
+  font-size: 16px;
+}
+
+.income-contribution-header span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.income-contribution-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.income-user-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.income-user-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.income-user-title span {
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.income-user-bar {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.income-user-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #2563eb);
+}
+
+.income-user-values {
+  display: grid;
+  gap: 8px;
+}
+
+.income-user-values div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.income-user-values strong {
+  color: var(--text);
+}
+
+.income-user-message {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.income-user-message.positive {
+  color: #bbf7d0;
+}
+
+.income-user-message.negative {
+  color: #fed7aa;
+}
+
+@media (max-width: 900px) {
+  .income-contribution-grid {
+    grid-template-columns: 1fr;
+  }
+}
