@@ -9,7 +9,25 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
+const revenuesCache = new Map();
+const CACHE_TIME_MS = 60 * 1000;
+
+function getRevenuesCacheKey(appUser, referenceMonth) {
+  return `${appUser.familyId}:${referenceMonth}`;
+}
+
+function clearRevenuesCache() {
+  revenuesCache.clear();
+}
+
 export async function listRevenuesByMonth(appUser, referenceMonth) {
+  const cacheKey = getRevenuesCacheKey(appUser, referenceMonth);
+  const cached = revenuesCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.createdAt < CACHE_TIME_MS) {
+    return cached.data;
+  }
+
   const revenuesQuery = query(
     collection(db, 'revenues'),
     where('familyId', '==', appUser.familyId),
@@ -18,11 +36,17 @@ export async function listRevenuesByMonth(appUser, referenceMonth) {
   );
 
   const snapshot = await getDocs(revenuesQuery);
-
-  return snapshot.docs.map((document) => ({
+  const data = snapshot.docs.map((document) => ({
     id: document.id,
     ...document.data()
   }));
+
+  revenuesCache.set(cacheKey, {
+    createdAt: Date.now(),
+    data
+  });
+
+  return data;
 }
 
 export async function saveMonthlyRevenue(appUser, revenueData) {
@@ -49,14 +73,19 @@ export async function saveMonthlyRevenue(appUser, revenueData) {
     isArchived: false
   };
 
+  let result;
+
   if (!snapshot.empty) {
-    return updateDoc(snapshot.docs[0].ref, payload);
+    result = await updateDoc(snapshot.docs[0].ref, payload);
+  } else {
+    result = await addDoc(collection(db, 'revenues'), {
+      ...payload,
+      createdBy: appUser.uid,
+      createdByName: appUser.name || appUser.email || 'Usuário',
+      createdAt: serverTimestamp()
+    });
   }
 
-  return addDoc(collection(db, 'revenues'), {
-    ...payload,
-    createdBy: appUser.uid,
-    createdByName: appUser.name || appUser.email || 'Usuário',
-    createdAt: serverTimestamp()
-  });
+  clearRevenuesCache();
+  return result;
 }
