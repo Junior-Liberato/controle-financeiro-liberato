@@ -73,7 +73,8 @@ export async function createAccount(appUser, accountData) {
     isArchived: false,
     archivedAt: null,
     archivedBy: null,
-    archivedByName: null
+    archivedByName: null,
+    archiveReason: null
   });
 }
 
@@ -107,7 +108,7 @@ export async function markAccountAsPaid(appUser, accountId) {
   });
 }
 
-export async function archiveAccount(appUser, accountId) {
+export async function archiveAccount(appUser, accountId, reason = '') {
   const accountRef = doc(db, 'accounts', accountId);
 
   return updateDoc(accountRef, {
@@ -115,6 +116,7 @@ export async function archiveAccount(appUser, accountId) {
     archivedAt: serverTimestamp(),
     archivedBy: appUser.uid,
     archivedByName: appUser.name || appUser.email || 'Usuário',
+    archiveReason: reason || null,
     updatedBy: appUser.uid,
     updatedByName: appUser.name || appUser.email || 'Usuário',
     updatedAt: serverTimestamp()
