@@ -60,6 +60,18 @@
   align-self: start;
 }
 
+.collapsed-account .pay-account-btn,
+.collapsed-account .delete-account-btn {
+  display: none;
+}
+
+.collapsed-account.expanded .pay-account-btn,
+.collapsed-account.expanded .delete-account-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .account-value {
   margin-bottom: 4px;
 }
