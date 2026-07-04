@@ -1,8 +1,11 @@
 import { observarAutenticacao, entrar, sair, recuperarSenha } from './auth.js';
+import { setupBudgetClickFix } from './budget-click-fix.js?v=20260704-22';
 import { setupBudgetUi } from './budget-ui.js?v=20260704-21';
+import { setupCardSettingsUi } from './card-settings-ui.js?v=20260704-22';
 import { observeContributionPanel } from './contribution-panel.js?v=20260704-19';
 import { observeHomeRecent } from './home-recent.js?v=20260704-21';
 import { setupNavigation } from './navigation.js?v=20260704-21';
+import { setupPaymentFlow } from './payment-flow.js?v=20260704-22';
 import { renderDashboard } from './dashboard.js?v=20260704-18';
 
 const app = document.querySelector('#app');
@@ -86,6 +89,9 @@ observarAutenticacao(async (firebaseUser, appUser) => {
   };
 
   await rerender();
+  setupPaymentFlow();
+  setupCardSettingsUi(appUser);
+  setupBudgetClickFix();
   observeHomeRecent(appUser);
   observeContributionPanel(appUser);
   await setupBudgetUi(appUser, rerender);
