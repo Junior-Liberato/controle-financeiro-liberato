@@ -7,6 +7,16 @@ let observerStarted = false;
 let renderTimer = null;
 let currentUser = null;
 
+function ensureContributionStyles() {
+  if (document.querySelector('#contribution-css')) return;
+
+  const link = document.createElement('link');
+  link.id = 'contribution-css';
+  link.rel = 'stylesheet';
+  link.href = 'css/contribution.css?v=20260704-19';
+  document.head.appendChild(link);
+}
+
 function formatPercent(value) {
   return `${(Number(value || 0) * 100).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
@@ -102,6 +112,7 @@ function scheduleRender() {
 
 export function observeContributionPanel(appUser) {
   currentUser = appUser;
+  ensureContributionStyles();
   scheduleRender();
 
   if (observerStarted) return;
