@@ -1,4 +1,5 @@
 import { observarAutenticacao, entrar, sair, recuperarSenha } from './auth.js';
+import { observeContributionPanel } from './contribution-panel.js?v=20260704-19';
 import { renderDashboard } from './dashboard.js?v=20260704-18';
 
 const app = document.querySelector('#app');
@@ -77,6 +78,7 @@ observarAutenticacao(async (firebaseUser, appUser) => {
   }
 
   await renderDashboard(app, appUser);
+  observeContributionPanel(appUser);
 
   const logoutButton = document.querySelector('#logout-btn');
 
