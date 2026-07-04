@@ -21,6 +21,10 @@ function getAccountStatusLabel(account) {
   return 'Em aberto';
 }
 
+function getCreatedByLabel(account) {
+  return account.createdByName || account.createdBy || 'Não informado';
+}
+
 function buildAccountsList(accounts) {
   if (!accounts.length) {
     return '<div class="empty-state">Nenhuma conta cadastrada ainda.</div>';
@@ -33,7 +37,9 @@ function buildAccountsList(accounts) {
           <div>
             <strong>${account.description}</strong>
             <div class="account-meta">
-              Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}
+              ID: ${account.launchCode || account.id}<br>
+              Vencimento: ${formatDateBR(account.dueDate)} • Status: ${getAccountStatusLabel(account)}<br>
+              Lançado por: ${getCreatedByLabel(account)}
             </div>
           </div>
           <div class="account-actions">
