@@ -1,0 +1,75 @@
+.collapsed-account {
+  cursor: pointer;
+  align-items: start;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.collapsed-account:hover {
+  border-color: rgba(37, 99, 235, 0.48);
+  transform: translateY(-1px);
+}
+
+.account-title-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.account-title-line strong {
+  font-size: 18px;
+}
+
+.account-created-date {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.account-subtitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 720px;
+}
+
+.account-details {
+  display: none;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.collapsed-account.expanded .account-details {
+  display: grid;
+  gap: 3px;
+}
+
+.collapsed-account.expanded {
+  border-color: rgba(37, 99, 235, 0.42);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.9));
+}
+
+.account-actions {
+  align-self: start;
+}
+
+.account-value {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 520px) {
+  .account-title-line {
+    gap: 8px;
+  }
+
+  .account-created-date {
+    font-size: 11px;
+  }
+}
