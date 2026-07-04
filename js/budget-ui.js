@@ -1,10 +1,18 @@
-import { budgetGroups } from './budget-rule.js';
+import { listAccountsByMonth } from './accounts.js';
+import { budgetGroups, calculateBudgetRule } from './budget-rule.js';
 import { getBudgetSettings, saveBudgetSettings } from './budget-settings.js';
+import { formatCurrency } from './formatters.js';
+import { listRevenuesByMonth } from './revenues.js';
 
 let currentUser = null;
 let observerStarted = false;
 let currentSettings = null;
 let rerenderCallback = null;
+let rewritingPanel = false;
+
+function getReferenceMonth() {
+  return document.querySelector('#reference-month-filter')?.value || new Date().toISOString().slice(0, 7);
+}
 
 function buildBudgetSettingsButton() {
   return `
@@ -81,6 +89,30 @@ function buildBudgetSettingsModal(settings) {
   `;
 }
 
+function buildBudgetRuleGrid(ruleItems) {
+  return `
+    <div class="budget-rule-grid">
+      ${ruleItems.map((item) => `
+        <article class="budget-rule-card ${item.status === 'above' ? 'budget-alert' : ''}" data-budget-key="${item.key}">
+          <div class="budget-rule-title">
+            <strong>${item.label}</strong>
+            <span>${Math.round(item.percent * 100)}%</span>
+          </div>
+          <div class="budget-bar">
+            <span style="width: ${Math.min(item.usedPercent, 100)}%"></span>
+          </div>
+          <div class="budget-rule-values">
+            <div><span>Limite</span><strong>${formatCurrency(item.limit)}</strong></div>
+            <div><span>Realizado</span><strong>${formatCurrency(item.actual)}</strong></div>
+            <div><span>Diferença</span><strong>${formatCurrency(item.difference)}</strong></div>
+          </div>
+          <p class="budget-rule-message">${item.status === 'above' ? 'Acima do recomendado.' : 'Dentro do recomendado.'}</p>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
 function openExplanation(key) {
   const item = {
     key,
@@ -138,7 +170,32 @@ function openSettingsModal() {
   });
 }
 
-function enhanceBudgetPanel() {
+async function rewriteBudgetGrid() {
+  if (rewritingPanel || !currentUser || !currentSettings) return;
+
+  const planningPanel = document.querySelector('.planning-panel');
+  const currentGrid = planningPanel?.querySelector('.budget-rule-grid');
+
+  if (!planningPanel || !currentGrid) return;
+
+  rewritingPanel = true;
+
+  try {
+    const referenceMonth = getReferenceMonth();
+    const [accounts, revenues] = await Promise.all([
+      listAccountsByMonth(currentUser, referenceMonth),
+      listRevenuesByMonth(currentUser, referenceMonth)
+    ]);
+    const totalIncome = revenues.reduce((sum, revenue) => sum + Number(revenue.incomeAmount || 0), 0);
+    const ruleItems = calculateBudgetRule(accounts, totalIncome, currentSettings);
+
+    currentGrid.outerHTML = buildBudgetRuleGrid(ruleItems);
+  } finally {
+    rewritingPanel = false;
+  }
+}
+
+async function enhanceBudgetPanel() {
   const planningHeader = document.querySelector('.planning-header');
   const planningPanel = document.querySelector('.planning-panel');
 
@@ -150,9 +207,10 @@ function enhanceBudgetPanel() {
 
   document.querySelector('#open-budget-settings')?.addEventListener('click', openSettingsModal);
 
+  await rewriteBudgetGrid();
+
   document.querySelectorAll('.budget-rule-card').forEach((card) => {
-    const title = card.querySelector('.budget-rule-title strong')?.textContent?.trim() || '';
-    const key = Object.entries(budgetGroups).find(([, value]) => value.label === title)?.[0];
+    const key = card.dataset.budgetKey || Object.entries(budgetGroups).find(([, value]) => value.label === card.querySelector('.budget-rule-title strong')?.textContent?.trim())?.[0];
 
     if (!key || card.dataset.explanationReady === 'true') return;
 
@@ -166,12 +224,14 @@ export async function setupBudgetUi(appUser, rerender) {
   currentUser = appUser;
   rerenderCallback = rerender;
   currentSettings = await getBudgetSettings(appUser);
-  enhanceBudgetPanel();
+  await enhanceBudgetPanel();
 
   if (observerStarted) return;
 
   const app = document.querySelector('#app');
-  const observer = new MutationObserver(() => enhanceBudgetPanel());
+  const observer = new MutationObserver(() => {
+    enhanceBudgetPanel().catch((error) => console.error('Erro ao preparar regra 50/30/20:', error));
+  });
   observer.observe(app, { childList: true, subtree: true });
   observerStarted = true;
 }
