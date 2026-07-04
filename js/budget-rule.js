@@ -67,3 +67,31 @@ export function calculateBudgetRule(accounts, totalIncome) {
     };
   });
 }
+
+export function calculateIncomeContribution(accounts, revenues) {
+  const activeAccounts = accounts.filter((account) => account.status !== 'cancelled');
+  const totalIncome = revenues.reduce((sum, revenue) => sum + Number(revenue.incomeAmount || 0), 0);
+  const totalExpenses = activeAccounts.reduce((sum, account) => sum + Number(account.amount || 0), 0);
+
+  return revenues
+    .map((revenue) => {
+      const incomeAmount = Number(revenue.incomeAmount || 0);
+      const incomePercent = totalIncome > 0 ? incomeAmount / totalIncome : 0;
+      const idealContribution = totalExpenses * incomePercent;
+      const paidAmount = activeAccounts
+        .filter((account) => account.status === 'paid' && account.paidBy === revenue.userId)
+        .reduce((sum, account) => sum + Number(account.amount || 0), 0);
+      const difference = paidAmount - idealContribution;
+
+      return {
+        userId: revenue.userId,
+        userName: revenue.userName || 'Usuário',
+        incomeAmount,
+        incomePercent,
+        idealContribution,
+        paidAmount,
+        difference
+      };
+    })
+    .sort((a, b) => b.incomeAmount - a.incomeAmount);
+}
