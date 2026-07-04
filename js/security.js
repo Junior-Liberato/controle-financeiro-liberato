@@ -29,9 +29,32 @@ function getSecurityRef(uid) {
   return doc(db, 'userSecurity', uid);
 }
 
+export function getSecurityErrorMessage(error) {
+  const code = error?.code || '';
+
+  if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+    return 'Senha de login inválida.';
+  }
+
+  if (code === 'permission-denied') {
+    return 'PIN validado, mas o Firebase bloqueou o salvamento. Atualize as regras do Firestore para liberar a coleção userSecurity.';
+  }
+
+  if (code === 'unavailable') {
+    return 'Falha de conexão com o Firebase. Tente novamente.';
+  }
+
+  return `Não foi possível concluir a operação. ${code || 'erro-desconhecido'}`;
+}
+
 export async function hasPinConfigured(uid) {
-  const securitySnap = await getDoc(getSecurityRef(uid));
-  return securitySnap.exists() && Boolean(securitySnap.data().pinHash);
+  try {
+    const securitySnap = await getDoc(getSecurityRef(uid));
+    return securitySnap.exists() && Boolean(securitySnap.data().pinHash);
+  } catch (error) {
+    console.error('Erro ao consultar PIN:', error);
+    throw error;
+  }
 }
 
 export async function verifyPin(uid, pin) {
@@ -72,8 +95,7 @@ export async function createOrUpdatePin(appUser, pin, password) {
     userName: appUser.name || appUser.email || 'Usuário',
     pinHash,
     updatedAt: serverTimestamp(),
-    updatedBy: appUser.uid,
-    createdAt: serverTimestamp()
+    updatedBy: appUser.uid
   }, { merge: true });
 }
 
