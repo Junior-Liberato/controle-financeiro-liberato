@@ -59,6 +59,8 @@ export async function createAccount(appUser, accountData) {
     status: 'open',
     paymentMethodId: accountData.paymentMethodId || 'pix',
     paidAt: null,
+    paidBy: null,
+    paidByName: null,
     notes: accountData.notes || '',
     isRecurring: false,
     recurrenceId: null,
@@ -97,6 +99,8 @@ export async function markAccountAsPaid(appUser, accountId) {
   return updateDoc(accountRef, {
     status: 'paid',
     paidAt: serverTimestamp(),
+    paidBy: appUser.uid,
+    paidByName: appUser.name || appUser.email || 'Usuário',
     updatedBy: appUser.uid,
     updatedByName: appUser.name || appUser.email || 'Usuário',
     updatedAt: serverTimestamp()
