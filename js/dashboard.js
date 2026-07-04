@@ -8,6 +8,7 @@ import {
 
 let selectedReferenceMonth = getCurrentReferenceMonth();
 let selectedStatusFilter = 'all';
+let selectedUserFilter = 'all';
 
 function isOverdue(account) {
   if (account.status !== 'open') return false;
@@ -41,6 +42,10 @@ function getAccountValueClass(account) {
 
 function getCreatedByLabel(account) {
   return account.createdByName || account.createdBy || 'Não informado';
+}
+
+function getPaidByLabel(account) {
+  return account.paidByName || account.paidBy || 'Não informado';
 }
 
 function getCategoryLabel(categoryId) {
@@ -91,34 +96,64 @@ function sortAccountsByLatest(accounts) {
   return [...accounts].sort((a, b) => getCreatedAtTime(b) - getCreatedAtTime(a));
 }
 
-function filterAccounts(accounts) {
-  if (selectedStatusFilter === 'all') return accounts;
-
-  return accounts.filter((account) => getAccountStatusKey(account) === selectedStatusFilter);
+function getAccountUserKey(account) {
+  return account.createdBy || 'unknown';
 }
 
-function buildDashboardControls() {
-  const filters = [
+function getUserOptions(accounts) {
+  const users = new Map();
+
+  accounts.forEach((account) => {
+    users.set(getAccountUserKey(account), getCreatedByLabel(account));
+  });
+
+  return [...users.entries()].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'));
+}
+
+function filterAccounts(accounts) {
+  return accounts.filter((account) => {
+    const statusMatches = selectedStatusFilter === 'all' || getAccountStatusKey(account) === selectedStatusFilter;
+    const userMatches = selectedUserFilter === 'all' || getAccountUserKey(account) === selectedUserFilter;
+
+    return statusMatches && userMatches;
+  });
+}
+
+function buildDashboardControls(accounts) {
+  const statusOptions = [
     { key: 'all', label: 'Todos' },
     { key: 'open', label: 'Em aberto' },
     { key: 'paid', label: 'Pagos' },
     { key: 'overdue', label: 'Atrasados' }
   ];
 
+  const userOptions = getUserOptions(accounts);
+
   return `
     <section class="dashboard-controls">
-      <label class="month-filter-label">
+      <label class="filter-label">
         Mês de referência
-        <input class="input month-filter-input" id="reference-month-filter" type="month" value="${selectedReferenceMonth}">
+        <input class="input filter-input" id="reference-month-filter" type="month" value="${selectedReferenceMonth}">
       </label>
 
-      <div class="status-filter-group" aria-label="Filtro por status">
-        ${filters.map((filter) => `
-          <button class="status-filter-btn ${selectedStatusFilter === filter.key ? 'active' : ''}" data-status-filter="${filter.key}" type="button">
-            ${filter.label}
-          </button>
-        `).join('')}
-      </div>
+      <label class="filter-label">
+        Status
+        <select class="input filter-input" id="status-filter-select">
+          ${statusOptions.map((option) => `
+            <option value="${option.key}" ${selectedStatusFilter === option.key ? 'selected' : ''}>${option.label}</option>
+          `).join('')}
+        </select>
+      </label>
+
+      <label class="filter-label">
+        Usuário
+        <select class="input filter-input" id="user-filter-select">
+          <option value="all" ${selectedUserFilter === 'all' ? 'selected' : ''}>Todos</option>
+          ${userOptions.map(([uid, name]) => `
+            <option value="${uid}" ${selectedUserFilter === uid ? 'selected' : ''}>${name}</option>
+          `).join('')}
+        </select>
+      </label>
     </section>
   `;
 }
@@ -180,6 +215,7 @@ function buildAccountsList(accounts) {
               <div>Vencimento: ${formatDateBR(account.dueDate)}</div>
               <div>Status: ${getAccountStatusLabel(account)}</div>
               <div>Lançado por: ${getCreatedByLabel(account)}</div>
+              ${account.status === 'paid' ? `<div>Pago por: ${getPaidByLabel(account)}</div>` : ''}
             </div>
           </div>
           <div class="account-actions">
@@ -297,16 +333,16 @@ export async function renderDashboard(app, appUser) {
   const userName = appUser?.name || 'Usuário';
   const accounts = await listAccountsByMonth(appUser, selectedReferenceMonth);
 
-  const totalExpenses = accounts
-    .filter((account) => account.status !== 'cancelled')
+  const totalForecast = accounts
+    .filter((account) => account.status !== 'paid' && account.status !== 'cancelled')
     .reduce((sum, account) => sum + Number(account.amount || 0), 0);
 
   const totalOpen = accounts
-    .filter((account) => account.status === 'open')
+    .filter((account) => getAccountStatusKey(account) === 'open')
     .reduce((sum, account) => sum + Number(account.amount || 0), 0);
 
   const totalOverdue = accounts
-    .filter((account) => isOverdue(account))
+    .filter((account) => getAccountStatusKey(account) === 'overdue')
     .reduce((sum, account) => sum + Number(account.amount || 0), 0);
 
   const totalPaid = accounts
@@ -330,7 +366,7 @@ export async function renderDashboard(app, appUser) {
         </article>
         <article class="metric-card">
           <span>Despesas previstas</span>
-          <strong>${formatCurrency(totalExpenses)}</strong>
+          <strong>${formatCurrency(totalForecast)}</strong>
         </article>
         <article class="metric-card">
           <span>Em aberto</span>
@@ -353,7 +389,7 @@ export async function renderDashboard(app, appUser) {
         </article>
       </section>
 
-      ${buildDashboardControls()}
+      ${buildDashboardControls(accounts)}
 
       <section class="panel">
         <div class="panel-header">
@@ -375,14 +411,18 @@ export async function renderDashboard(app, appUser) {
 
   document.querySelector('#reference-month-filter')?.addEventListener('change', async (event) => {
     selectedReferenceMonth = event.target.value || getCurrentReferenceMonth();
+    selectedUserFilter = 'all';
     await renderDashboard(app, appUser);
   });
 
-  document.querySelectorAll('.status-filter-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
-      selectedStatusFilter = button.dataset.statusFilter || 'all';
-      await renderDashboard(app, appUser);
-    });
+  document.querySelector('#status-filter-select')?.addEventListener('change', async (event) => {
+    selectedStatusFilter = event.target.value || 'all';
+    await renderDashboard(app, appUser);
+  });
+
+  document.querySelector('#user-filter-select')?.addEventListener('change', async (event) => {
+    selectedUserFilter = event.target.value || 'all';
+    await renderDashboard(app, appUser);
   });
 
   document.querySelectorAll('.collapsed-account').forEach((card) => {
