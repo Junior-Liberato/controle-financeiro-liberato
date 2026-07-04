@@ -1,12 +1,12 @@
 import { observarAutenticacao, entrar, sair, recuperarSenha } from './auth.js';
-import { setupBudgetClickFix } from './budget-click-fix.js?v=20260704-23';
-import { setupBudgetUi } from './budget-ui.js?v=20260704-23';
-import { setupCardSettingsUi } from './card-settings-ui.js?v=20260704-23';
-import { observeContributionPanel } from './contribution-panel.js?v=20260704-23';
-import { observeHomeRecent } from './home-recent.js?v=20260704-23';
-import { setupNavigation } from './navigation.js?v=20260704-23';
-import { setupPaymentFlow } from './payment-flow.js?v=20260704-23';
-import { renderDashboard } from './dashboard.js?v=20260704-23';
+import { setupBudgetClickFix } from './budget-click-fix.js?v=20260704-24';
+import { setupBudgetUi } from './budget-ui.js?v=20260704-24';
+import { setupCardSettingsUi } from './card-settings-ui.js?v=20260704-24';
+import { observeContributionPanel } from './contribution-panel.js?v=20260704-24';
+import { observeHomeRecent } from './home-recent.js?v=20260704-24';
+import { setupNavigation } from './navigation.js?v=20260704-24';
+import { setupPaymentFlow } from './payment-flow.js?v=20260704-24';
+import { renderDashboard } from './dashboard.js?v=20260704-24';
 
 const app = document.querySelector('#app');
 
