@@ -77,7 +77,9 @@ function buildNewAccountModal(appUser, referenceMonth) {
           <label class="field-label">
             Categoria
             <select class="input" id="account-category">
-              <option value="agua-luz-internet">Água, Luz e Internet</option>
+              <option value="agua">Água</option>
+              <option value="luz">Luz</option>
+              <option value="internet">Internet</option>
               <option value="moradia">Moradia</option>
               <option value="alimentacao">Alimentação</option>
               <option value="cartao-credito">Cartão de Crédito</option>
