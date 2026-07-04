@@ -2,7 +2,6 @@ import { listAccountsByMonth } from './accounts.js';
 import { formatCurrency, formatDateBR } from './formatters.js';
 
 let currentUser = null;
-let observerStarted = false;
 let renderTimer = null;
 
 function getReferenceMonth() {
@@ -17,6 +16,7 @@ function getCreatedAtTime(account) {
 
 function getStatusLabel(account) {
   if (account.status === 'paid') return 'Pago';
+  if (account.status === 'card_invoice') return 'Cartão / fatura';
   return 'Em aberto';
 }
 
@@ -61,23 +61,12 @@ async function renderHomeRecent() {
   secondaryMetrics.insertAdjacentHTML('afterend', buildRecentHomePanel(accounts));
 }
 
-function scheduleRender() {
+export function observeHomeRecent(appUser) {
+  currentUser = appUser;
   clearTimeout(renderTimer);
   renderTimer = setTimeout(() => {
     renderHomeRecent().catch((error) => {
       console.error('Erro ao renderizar últimos lançamentos:', error);
     });
-  }, 200);
-}
-
-export function observeHomeRecent(appUser) {
-  currentUser = appUser;
-  scheduleRender();
-
-  if (observerStarted) return;
-
-  const app = document.querySelector('#app');
-  const observer = new MutationObserver(() => scheduleRender());
-  observer.observe(app, { childList: true, subtree: true });
-  observerStarted = true;
+  }, 250);
 }
