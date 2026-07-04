@@ -48,10 +48,33 @@ function isImmediatePayment(paymentMethodId) {
   return ['pix', 'debit', 'cash'].includes(paymentMethodId);
 }
 
+function getPaymentMethodFromForm(accountData) {
+  return accountData.paymentMethodId
+    || document.querySelector('#account-payment-method')?.value
+    || 'pix';
+}
+
+function getLaunchDateFromForm(accountData) {
+  return accountData.launchDate
+    || document.querySelector('#account-launch-date')?.value
+    || accountData.dueDate;
+}
+
+function getPaymentMethodLabel(paymentMethodId) {
+  const labels = {
+    pix: 'PIX',
+    debit: 'Débito',
+    cash: 'Dinheiro',
+    'credit-card': 'Cartão de crédito'
+  };
+
+  return labels[paymentMethodId] || paymentMethodId;
+}
+
 export async function createAccount(appUser, accountData) {
   const categoryId = accountData.categoryId || 'outros';
-  const paymentMethodId = accountData.paymentMethodId || 'pix';
-  const launchDateValue = accountData.launchDate || accountData.dueDate;
+  const paymentMethodId = getPaymentMethodFromForm(accountData);
+  const launchDateValue = getLaunchDateFromForm(accountData);
   const launchDate = new Date(`${launchDateValue}T12:00:00`);
   const isCreditCard = paymentMethodId === 'credit-card';
   const cardSettings = isCreditCard ? await getCardSettings(appUser) : null;
@@ -72,7 +95,7 @@ export async function createAccount(appUser, accountData) {
     responsibleUserId: accountData.responsibleUserId || appUser.uid,
     status: immediatePayment ? 'paid' : 'card_invoice',
     paymentMethodId,
-    paymentMethodLabel: accountData.paymentMethodLabel || paymentMethodId,
+    paymentMethodLabel: accountData.paymentMethodLabel || getPaymentMethodLabel(paymentMethodId),
     paidAt: immediatePayment ? serverTimestamp() : null,
     paidBy: immediatePayment ? appUser.uid : null,
     paidByName: immediatePayment ? appUser.name || appUser.email || 'Usuário' : null,
