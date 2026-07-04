@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { calculateCreditCardInvoice, getCardSettings } from './card-settings.js';
 
 function getCategoryPrefix(categoryId) {
   const prefixes = {
@@ -43,9 +44,21 @@ function generateLaunchCode(categoryId) {
   return `${getCategoryPrefix(categoryId)}-${year}${month}${day}-${hour}${minute}${second}-${random}`;
 }
 
+function isImmediatePayment(paymentMethodId) {
+  return ['pix', 'debit', 'cash'].includes(paymentMethodId);
+}
+
 export async function createAccount(appUser, accountData) {
-  const dueDate = new Date(`${accountData.dueDate}T12:00:00`);
   const categoryId = accountData.categoryId || 'outros';
+  const paymentMethodId = accountData.paymentMethodId || 'pix';
+  const launchDateValue = accountData.launchDate || accountData.dueDate;
+  const launchDate = new Date(`${launchDateValue}T12:00:00`);
+  const isCreditCard = paymentMethodId === 'credit-card';
+  const cardSettings = isCreditCard ? await getCardSettings(appUser) : null;
+  const cardInvoice = isCreditCard ? calculateCreditCardInvoice(launchDateValue, cardSettings) : null;
+  const dueDate = isCreditCard ? cardInvoice.invoiceDueDate : launchDate;
+  const referenceMonth = isCreditCard ? cardInvoice.invoiceReferenceMonth : accountData.referenceMonth;
+  const immediatePayment = isImmediatePayment(paymentMethodId);
 
   return addDoc(collection(db, 'accounts'), {
     familyId: appUser.familyId,
@@ -53,14 +66,19 @@ export async function createAccount(appUser, accountData) {
     description: accountData.description,
     categoryId,
     amount: Number(accountData.amount),
+    launchDate: Timestamp.fromDate(launchDate),
     dueDate: Timestamp.fromDate(dueDate),
-    referenceMonth: accountData.referenceMonth,
+    referenceMonth,
     responsibleUserId: accountData.responsibleUserId || appUser.uid,
-    status: 'open',
-    paymentMethodId: accountData.paymentMethodId || 'pix',
-    paidAt: null,
-    paidBy: null,
-    paidByName: null,
+    status: immediatePayment ? 'paid' : 'card_invoice',
+    paymentMethodId,
+    paymentMethodLabel: accountData.paymentMethodLabel || paymentMethodId,
+    paidAt: immediatePayment ? serverTimestamp() : null,
+    paidBy: immediatePayment ? appUser.uid : null,
+    paidByName: immediatePayment ? appUser.name || appUser.email || 'Usuário' : null,
+    cardInvoiceMonth: cardInvoice?.invoiceReferenceMonth || null,
+    cardClosingDay: cardInvoice?.closingDay || null,
+    cardDueDay: cardInvoice?.dueDay || null,
     notes: accountData.notes || '',
     isRecurring: false,
     recurrenceId: null,
