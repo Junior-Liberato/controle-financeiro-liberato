@@ -1,5 +1,7 @@
 import { observarAutenticacao, entrar, sair, recuperarSenha } from './auth.js';
+import { setupBudgetUi } from './budget-ui.js?v=20260704-20';
 import { observeContributionPanel } from './contribution-panel.js?v=20260704-19';
+import { setupNavigation } from './navigation.js?v=20260704-20';
 import { renderDashboard } from './dashboard.js?v=20260704-18';
 
 const app = document.querySelector('#app');
@@ -77,8 +79,14 @@ observarAutenticacao(async (firebaseUser, appUser) => {
     return;
   }
 
-  await renderDashboard(app, appUser);
+  const rerender = async () => {
+    await renderDashboard(app, appUser);
+    setupNavigation();
+  };
+
+  await rerender();
   observeContributionPanel(appUser);
+  await setupBudgetUi(appUser, rerender);
 
   const logoutButton = document.querySelector('#logout-btn');
 
