@@ -7,9 +7,9 @@ function renderLogin(message = '') {
   app.innerHTML = `
     <section class="center-shell">
       <div class="login-card">
-        <div class="brand-mark">FL</div>
-        <h1>Família Liberato</h1>
-        <p class="muted">Controle financeiro familiar</p>
+        <div class="brand-mark">CF</div>
+        <h1>CONTROLE FINANCEIRO</h1>
+        <p class="muted">Desenvolvido por Adilson Liberato Junior</p>
 
         <form id="login-form" class="form-stack">
           <label class="field-label">
