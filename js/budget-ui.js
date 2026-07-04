@@ -5,7 +5,6 @@ import { formatCurrency } from './formatters.js';
 import { listRevenuesByMonth } from './revenues.js';
 
 let currentUser = null;
-let observerStarted = false;
 let currentSettings = null;
 let rerenderCallback = null;
 let rewritingPanel = false;
@@ -239,15 +238,6 @@ export async function setupBudgetUi(appUser, rerender) {
   currentSettings = await getBudgetSettings(appUser);
   setupGlobalBudgetClick();
   await enhanceBudgetPanel();
-
-  if (observerStarted) return;
-
-  const app = document.querySelector('#app');
-  const observer = new MutationObserver(() => {
-    enhanceBudgetPanel().catch((error) => console.error('Erro ao preparar regra 50/30/20:', error));
-  });
-  observer.observe(app, { childList: true, subtree: true });
-  observerStarted = true;
 }
 
 export function getCurrentBudgetSettings() {
