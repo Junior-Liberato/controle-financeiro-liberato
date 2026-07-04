@@ -6,6 +6,20 @@
   margin-top: 16px;
 }
 
+.topbar {
+  margin-bottom: 14px;
+}
+
+.bottom-nav {
+  position: sticky !important;
+  top: 10px;
+  bottom: auto !important;
+  z-index: 20;
+  margin: 0 0 18px 0 !important;
+  max-width: none !important;
+  transform: none !important;
+}
+
 .clickable-budget-card {
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -20,8 +34,67 @@
   white-space: nowrap;
 }
 
+.home-recent-panel {
+  border: 1px solid var(--line);
+  background: rgba(17, 24, 39, 0.88);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.home-recent-list {
+  display: grid;
+  gap: 10px;
+}
+
+.home-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.home-recent-row div {
+  display: grid;
+  gap: 4px;
+}
+
+.home-recent-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.home-recent-value {
+  white-space: nowrap;
+  color: #93c5fd;
+}
+
 @media (max-width: 760px) {
   .budget-config-btn {
     width: 100%;
+  }
+
+  .bottom-nav {
+    left: auto !important;
+    right: auto !important;
+    top: 8px;
+  }
+
+  .home-recent-row {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .home-recent-row {
+    display: grid;
+  }
+
+  .home-recent-value {
+    white-space: normal;
   }
 }
