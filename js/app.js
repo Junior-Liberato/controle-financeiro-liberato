@@ -1,5 +1,5 @@
 import { observarAutenticacao, entrar, sair, recuperarSenha } from './auth.js';
-import { renderDashboard } from './dashboard.js';
+import { renderDashboard } from './dashboard.js?v=20260704-18';
 
 const app = document.querySelector('#app');
 
