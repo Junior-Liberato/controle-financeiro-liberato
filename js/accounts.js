@@ -12,6 +12,17 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { calculateCreditCardInvoice, getCardSettings } from './card-settings.js';
 
+const accountsCache = new Map();
+const CACHE_TIME_MS = 60 * 1000;
+
+function getAccountsCacheKey(appUser, referenceMonth) {
+  return `${appUser.familyId}:${referenceMonth}`;
+}
+
+function clearAccountsCache() {
+  accountsCache.clear();
+}
+
 function getCategoryPrefix(categoryId) {
   const prefixes = {
     agua: 'AGU',
@@ -83,7 +94,7 @@ export async function createAccount(appUser, accountData) {
   const referenceMonth = isCreditCard ? cardInvoice.invoiceReferenceMonth : accountData.referenceMonth;
   const immediatePayment = isImmediatePayment(paymentMethodId);
 
-  return addDoc(collection(db, 'accounts'), {
+  const result = await addDoc(collection(db, 'accounts'), {
     familyId: appUser.familyId,
     launchCode: generateLaunchCode(categoryId),
     description: accountData.description,
@@ -117,9 +128,19 @@ export async function createAccount(appUser, accountData) {
     archivedByName: null,
     archiveReason: null
   });
+
+  clearAccountsCache();
+  return result;
 }
 
 export async function listAccountsByMonth(appUser, referenceMonth) {
+  const cacheKey = getAccountsCacheKey(appUser, referenceMonth);
+  const cached = accountsCache.get(cacheKey);
+
+  if (cached && Date.now() - cached.createdAt < CACHE_TIME_MS) {
+    return cached.data;
+  }
+
   const accountsQuery = query(
     collection(db, 'accounts'),
     where('familyId', '==', appUser.familyId),
@@ -128,17 +149,22 @@ export async function listAccountsByMonth(appUser, referenceMonth) {
   );
 
   const snapshot = await getDocs(accountsQuery);
-
-  return snapshot.docs.map((document) => ({
+  const data = snapshot.docs.map((document) => ({
     id: document.id,
     ...document.data()
   }));
+
+  accountsCache.set(cacheKey, {
+    createdAt: Date.now(),
+    data
+  });
+
+  return data;
 }
 
 export async function markAccountAsPaid(appUser, accountId) {
   const accountRef = doc(db, 'accounts', accountId);
-
-  return updateDoc(accountRef, {
+  const result = await updateDoc(accountRef, {
     status: 'paid',
     paidAt: serverTimestamp(),
     paidBy: appUser.uid,
@@ -147,12 +173,14 @@ export async function markAccountAsPaid(appUser, accountId) {
     updatedByName: appUser.name || appUser.email || 'Usuário',
     updatedAt: serverTimestamp()
   });
+
+  clearAccountsCache();
+  return result;
 }
 
 export async function archiveAccount(appUser, accountId, reason = '') {
   const accountRef = doc(db, 'accounts', accountId);
-
-  return updateDoc(accountRef, {
+  const result = await updateDoc(accountRef, {
     isArchived: true,
     archivedAt: serverTimestamp(),
     archivedBy: appUser.uid,
@@ -162,4 +190,7 @@ export async function archiveAccount(appUser, accountId, reason = '') {
     updatedByName: appUser.name || appUser.email || 'Usuário',
     updatedAt: serverTimestamp()
   });
+
+  clearAccountsCache();
+  return result;
 }
