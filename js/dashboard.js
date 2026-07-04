@@ -1,6 +1,8 @@
 import { archiveAccount, createAccount, listAccountsByMonth, markAccountAsPaid } from './accounts.js';
 import { sair } from './auth.js';
+import { calculateBudgetRule } from './budget-rule.js';
 import { formatCurrency, formatDateBR, getCurrentReferenceMonth } from './formatters.js';
+import { listRevenuesByMonth, saveMonthlyRevenue } from './revenues.js';
 import {
   createOrUpdatePin,
   hasPinConfigured,
@@ -118,6 +120,10 @@ function filterAccounts(accounts) {
 
     return statusMatches && userMatches;
   });
+}
+
+function getCurrentUserRevenue(revenues, appUser) {
+  return revenues.find((revenue) => revenue.userId === appUser.uid);
 }
 
 function buildDashboardControls(accounts) {
@@ -263,6 +269,41 @@ function buildSettingsModal() {
   `;
 }
 
+function buildRevenueModal(currentRevenue) {
+  return `
+    <div class="modal-backdrop" id="revenue-modal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">Receitas</span>
+            <h3>Minha renda do mês</h3>
+          </div>
+          <button class="btn btn-secondary" id="close-revenue-modal" type="button">Fechar</button>
+        </div>
+
+        <form id="revenue-form" class="form-stack">
+          <label class="field-label">
+            Renda mensal
+            <input class="input" id="revenue-amount" type="number" step="0.01" min="0" required value="${currentRevenue?.incomeAmount || ''}" placeholder="0,00">
+          </label>
+
+          <label class="field-label">
+            Observação
+            <textarea class="input" id="revenue-notes" placeholder="Opcional">${currentRevenue?.notes || ''}</textarea>
+          </label>
+
+          <p id="revenue-status" class="status-message"></p>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancel-revenue" type="button">Cancelar</button>
+            <button class="btn btn-primary" type="submit">Salvar renda</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
 function buildAccountsList(accounts) {
   const filteredAccounts = filterAccounts(accounts);
   const sortedAccounts = sortAccountsByLatest(filteredAccounts);
@@ -302,7 +343,7 @@ function buildAccountsList(accounts) {
   `;
 }
 
-function buildNewAccountModal(referenceMonth) {
+function buildNewAccountModal() {
   return `
     <div class="modal-backdrop" id="account-modal">
       <div class="modal-card">
@@ -365,6 +406,59 @@ function buildNewAccountModal(referenceMonth) {
   `;
 }
 
+function buildBudgetRulePanel(accounts, revenues) {
+  const totalIncome = revenues.reduce((sum, revenue) => sum + Number(revenue.incomeAmount || 0), 0);
+  const ruleItems = calculateBudgetRule(accounts, totalIncome);
+
+  if (totalIncome <= 0) {
+    return `
+      <section class="planning-panel">
+        <div class="planning-header">
+          <div>
+            <span class="eyebrow">Planejamento</span>
+            <h3>Regra 50/30/20</h3>
+          </div>
+          <button class="btn btn-primary" id="open-revenue-modal" type="button">Cadastrar renda</button>
+        </div>
+        <div class="empty-state">Cadastre a renda mensal para ativar o painel da regra 50/30/20.</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="planning-panel">
+      <div class="planning-header">
+        <div>
+          <span class="eyebrow">Planejamento</span>
+          <h3>Regra 50/30/20</h3>
+          <p class="muted">Renda familiar cadastrada: ${formatCurrency(totalIncome)}</p>
+        </div>
+        <button class="btn btn-primary" id="open-revenue-modal" type="button">Atualizar renda</button>
+      </div>
+
+      <div class="budget-rule-grid">
+        ${ruleItems.map((item) => `
+          <article class="budget-rule-card ${item.status === 'above' ? 'budget-alert' : ''}">
+            <div class="budget-rule-title">
+              <strong>${item.label}</strong>
+              <span>${Math.round(item.percent * 100)}%</span>
+            </div>
+            <div class="budget-bar">
+              <span style="width: ${Math.min(item.usedPercent, 100)}%"></span>
+            </div>
+            <div class="budget-rule-values">
+              <div><span>Limite</span><strong>${formatCurrency(item.limit)}</strong></div>
+              <div><span>Realizado</span><strong>${formatCurrency(item.actual)}</strong></div>
+              <div><span>Diferença</span><strong>${formatCurrency(item.difference)}</strong></div>
+            </div>
+            <p class="budget-rule-message">${item.status === 'above' ? 'Acima do recomendado.' : 'Dentro do recomendado.'}</p>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function setupPinInputs(scope = document) {
   scope.querySelectorAll('.pin-input').forEach((input) => {
     input.addEventListener('input', () => {
@@ -417,7 +511,9 @@ async function openPinSetup(appUser, title = 'Criar PIN de segurança') {
         close(true);
       } catch (error) {
         console.error('Erro ao salvar PIN:', error);
-        status.textContent = 'Não foi possível salvar o PIN. Confira sua senha de login.';
+        status.textContent = error?.code === 'permission-denied'
+          ? 'Firebase bloqueou o salvamento. Verifique as regras da coleção userSecurity.'
+          : 'Não foi possível salvar o PIN. Confira sua senha de login.';
       }
     });
   });
@@ -501,9 +597,46 @@ function openSettings(appUser) {
   });
 }
 
+function openRevenueModal(appUser, revenues, rerender) {
+  const currentRevenue = getCurrentUserRevenue(revenues, appUser);
+  document.body.insertAdjacentHTML('beforeend', buildRevenueModal(currentRevenue));
+
+  const modal = document.querySelector('#revenue-modal');
+  const closeButton = document.querySelector('#close-revenue-modal');
+  const cancelButton = document.querySelector('#cancel-revenue');
+  const form = document.querySelector('#revenue-form');
+  const status = document.querySelector('#revenue-status');
+
+  const closeModal = () => modal?.remove();
+
+  closeButton?.addEventListener('click', closeModal);
+  cancelButton?.addEventListener('click', closeModal);
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    status.textContent = 'Salvando renda...';
+
+    try {
+      await saveMonthlyRevenue(appUser, {
+        referenceMonth: selectedReferenceMonth,
+        incomeAmount: document.querySelector('#revenue-amount').value,
+        notes: document.querySelector('#revenue-notes').value.trim()
+      });
+
+      closeModal();
+      await rerender();
+    } catch (error) {
+      console.error('Erro ao salvar renda:', error);
+      status.textContent = `Erro ao salvar renda: ${error.code || 'erro-desconhecido'}`;
+    }
+  });
+}
+
 export async function renderDashboard(app, appUser) {
   const userName = appUser?.name || 'Usuário';
   const accounts = await listAccountsByMonth(appUser, selectedReferenceMonth);
+  const revenues = await listRevenuesByMonth(appUser, selectedReferenceMonth);
+  const totalIncome = revenues.reduce((sum, revenue) => sum + Number(revenue.incomeAmount || 0), 0);
 
   const totalForecast = accounts
     .filter((account) => account.status !== 'paid' && account.status !== 'cancelled')
@@ -537,7 +670,7 @@ export async function renderDashboard(app, appUser) {
       <section class="dashboard-grid">
         <article class="metric-card">
           <span>Receitas do mês</span>
-          <strong>${formatCurrency(0)}</strong>
+          <strong>${formatCurrency(totalIncome)}</strong>
         </article>
         <article class="metric-card">
           <span>Despesas previstas</span>
@@ -564,6 +697,7 @@ export async function renderDashboard(app, appUser) {
         </article>
       </section>
 
+      ${buildBudgetRulePanel(accounts, revenues)}
       ${buildDashboardControls(accounts)}
 
       <section class="panel">
@@ -584,6 +718,8 @@ export async function renderDashboard(app, appUser) {
     </section>
   `;
 
+  const rerender = async () => renderDashboard(app, appUser);
+
   document.querySelector('#logout-btn')?.addEventListener('click', async () => {
     await sair();
   });
@@ -592,20 +728,24 @@ export async function renderDashboard(app, appUser) {
     openSettings(appUser);
   });
 
+  document.querySelector('#open-revenue-modal')?.addEventListener('click', () => {
+    openRevenueModal(appUser, revenues, rerender);
+  });
+
   document.querySelector('#reference-month-filter')?.addEventListener('change', async (event) => {
     selectedReferenceMonth = event.target.value || getCurrentReferenceMonth();
     selectedUserFilter = 'all';
-    await renderDashboard(app, appUser);
+    await rerender();
   });
 
   document.querySelector('#status-filter-select')?.addEventListener('change', async (event) => {
     selectedStatusFilter = event.target.value || 'all';
-    await renderDashboard(app, appUser);
+    await rerender();
   });
 
   document.querySelector('#user-filter-select')?.addEventListener('change', async (event) => {
     selectedUserFilter = event.target.value || 'all';
-    await renderDashboard(app, appUser);
+    await rerender();
   });
 
   document.querySelectorAll('.collapsed-account').forEach((card) => {
@@ -632,7 +772,7 @@ export async function renderDashboard(app, appUser) {
 
       try {
         await markAccountAsPaid(appUser, accountId);
-        await renderDashboard(app, appUser);
+        await rerender();
       } catch (error) {
         console.error('Erro ao marcar conta como paga:', error);
         button.textContent = 'Erro ao baixar';
@@ -664,7 +804,7 @@ export async function renderDashboard(app, appUser) {
 
       try {
         await archiveAccount(appUser, accountId, pinResult.reason);
-        await renderDashboard(app, appUser);
+        await rerender();
       } catch (error) {
         console.error('Erro ao excluir lançamento:', error);
         button.textContent = 'Erro ao excluir';
@@ -672,10 +812,8 @@ export async function renderDashboard(app, appUser) {
     });
   });
 
-  const openModalButton = document.querySelector('#open-account-modal');
-
-  openModalButton?.addEventListener('click', () => {
-    document.body.insertAdjacentHTML('beforeend', buildNewAccountModal(selectedReferenceMonth));
+  document.querySelector('#open-account-modal')?.addEventListener('click', () => {
+    document.body.insertAdjacentHTML('beforeend', buildNewAccountModal());
 
     const modal = document.querySelector('#account-modal');
     const closeButton = document.querySelector('#close-account-modal');
@@ -703,7 +841,7 @@ export async function renderDashboard(app, appUser) {
         });
 
         closeModal();
-        await renderDashboard(app, appUser);
+        await rerender();
       } catch (error) {
         console.error('Erro ao salvar conta:', error);
         status.textContent = `Erro ao salvar: ${error.code || 'erro-desconhecido'}`;
