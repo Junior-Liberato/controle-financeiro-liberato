@@ -70,13 +70,13 @@ function renderLogin(message = '') {
   });
 }
 
-observarAutenticacao((firebaseUser, appUser) => {
+observarAutenticacao(async (firebaseUser, appUser) => {
   if (!firebaseUser || !appUser) {
     renderLogin();
     return;
   }
 
-  renderDashboard(app, appUser);
+  await renderDashboard(app, appUser);
 
   const logoutButton = document.querySelector('#logout-btn');
 
