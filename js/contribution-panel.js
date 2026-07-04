@@ -3,7 +3,6 @@ import { calculateIncomeContribution } from './budget-rule.js';
 import { formatCurrency } from './formatters.js';
 import { listRevenuesByMonth } from './revenues.js';
 
-let observerStarted = false;
 let renderTimer = null;
 let currentUser = null;
 
@@ -13,7 +12,7 @@ function ensureContributionStyles() {
   const link = document.createElement('link');
   link.id = 'contribution-css';
   link.rel = 'stylesheet';
-  link.href = 'css/contribution.css?v=20260704-19';
+  link.href = 'css/contribution.css?v=20260704-23';
   document.head.appendChild(link);
 }
 
@@ -101,31 +100,13 @@ async function renderContributionPanel() {
   planningPanel.insertAdjacentHTML('beforeend', buildContributionHtml(contributions));
 }
 
-function scheduleRender() {
+export function observeContributionPanel(appUser) {
+  currentUser = appUser;
+  ensureContributionStyles();
   clearTimeout(renderTimer);
   renderTimer = setTimeout(() => {
     renderContributionPanel().catch((error) => {
       console.error('Erro ao renderizar contribuição proporcional:', error);
     });
-  }, 200);
-}
-
-export function observeContributionPanel(appUser) {
-  currentUser = appUser;
-  ensureContributionStyles();
-  scheduleRender();
-
-  if (observerStarted) return;
-
-  const app = document.querySelector('#app');
-  const observer = new MutationObserver(() => {
-    scheduleRender();
-  });
-
-  observer.observe(app, {
-    childList: true,
-    subtree: true
-  });
-
-  observerStarted = true;
+  }, 300);
 }
